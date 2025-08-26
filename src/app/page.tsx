@@ -1,18 +1,30 @@
+"use client";
 
+import React, { Suspense } from 'react';
 import Link from "next/link";
-import { BandGallery } from "@/components/sections/band-gallery";
-import { BookingInfo } from "@/components/sections/booking-info";
-import { FanComments } from "@/components/sections/fan-comments";
-import { FanGallery } from "@/components/sections/fan-gallery";
 import { Hero } from "@/components/sections/hero";
-import { Music } from "@/components/sections/music";
+import { BookingInfo } from "@/components/sections/booking-info";
 import { PaymentInfo } from "@/components/sections/payment-info";
-import { TourDates } from "@/components/sections/tour-dates";
-import { Separator } from "@/components/ui/separator";
-import { BandBio } from "@/components/sections/band-bio";
 import { SocialLinks } from "@/components/sections/social-links";
-import { PressKit } from "@/components/sections/press-kit";
-import { LogoGenerator } from "@/components/sections/logo-generator";
+import { Separator } from "@/components/ui/separator";
+import { Loader2 } from 'lucide-react';
+
+// Lazy load components that are below the fold
+const TourDates = React.lazy(() => import('@/components/sections/tour-dates').then(module => ({ default: module.TourDates })));
+const Music = React.lazy(() => import('@/components/sections/music').then(module => ({ default: module.Music })));
+const BandGallery = React.lazy(() => import('@/components/sections/band-gallery').then(module => ({ default: module.BandGallery })));
+const BandBio = React.lazy(() => import('@/components/sections/band-bio').then(module => ({ default: module.BandBio })));
+const FanGallery = React.lazy(() => import('@/components/sections/fan-gallery').then(module => ({ default: module.FanGallery })));
+const FanComments = React.lazy(() => import('@/components/sections/fan-comments').then(module => ({ default: module.FanComments })));
+const LogoGenerator = React.lazy(() => import('@/components/sections/logo-generator').then(module => ({ default: module.LogoGenerator })));
+const PressKit = React.lazy(() => import('@/components/sections/press-kit').then(module => ({ default: module.PressKit })));
+
+
+const Spinner = () => (
+  <div className="flex justify-center items-center w-full h-64">
+    <Loader2 className="h-12 w-12 animate-spin text-primary" />
+  </div>
+);
 
 export default function Home() {
   return (
@@ -31,38 +43,54 @@ export default function Home() {
 
         <Separator className="my-8" />
         
-        <TourDates />
+        <Suspense fallback={<Spinner />}>
+          <TourDates />
+        </Suspense>
         
         <Separator className="my-8" />
 
-        <Music />
-
+        <Suspense fallback={<Spinner />}>
+          <Music />
+        </Suspense>
+        
         <Separator className="my-8" />
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-            <div className="xl:col-span-2">
-                <BandGallery readOnly={true} />
-            </div>
-            <div className="xl:col-span-1">
-                <BandBio />
-            </div>
+          <div className="xl:col-span-2">
+            <Suspense fallback={<Spinner />}>
+              <BandGallery readOnly={true} />
+            </Suspense>
+          </div>
+          <div className="xl:col-span-1">
+            <Suspense fallback={<Spinner />}>
+              <BandBio />
+            </Suspense>
+          </div>
         </div>
 
         <Separator className="my-8" />
 
-        <FanGallery />
-
-        <Separator className="my-8" />
-
-        <FanComments readOnly={true} />
+        <Suspense fallback={<Spinner />}>
+          <FanGallery />
+        </Suspense>
         
         <Separator className="my-8" />
 
-        <LogoGenerator />
+        <Suspense fallback={<Spinner />}>
+          <FanComments readOnly={true} />
+        </Suspense>
+        
+        <Separator className="my-8" />
 
+        <Suspense fallback={<Spinner />}>
+          <LogoGenerator />
+        </Suspense>
+        
         <Separator className="my-8" />
         
-        <PressKit />
+        <Suspense fallback={<Spinner />}>
+          <PressKit />
+        </Suspense>
 
       </div>
       <footer className="w-full bg-primary/90 backdrop-blur-sm text-primary-foreground text-center p-4">
