@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, Loader2 } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
-import { getBandBio } from '@/app/actions/band-info.actions';
+import { getBandBio } from '@/app/actions';
 
 export function BandBio() {
     const [bio, setBio] = useState<string | null>(null);
