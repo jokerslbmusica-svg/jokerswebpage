@@ -58,15 +58,19 @@ export function HashtagGenerator() {
     setIsLoading(true);
     setResult(null);
     setError(null);
-    // @ts-ignore
+    
     const response = await getHashtagSuggestions(values);
-    // @ts-ignore
+    
     if (response.success && response.data) {
       // @ts-ignore
       setResult(response.data);
     } else {
-      // @ts-ignore
       setError(response.error);
+      toast({
+        variant: "destructive",
+        title: "Error de Generación",
+        description: response.error,
+      });
     }
     setIsLoading(false);
   }
