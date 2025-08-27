@@ -5,6 +5,8 @@
 source: .
 
 runConfig:
+  # The command to start your web server.
+  command: npm run start
   # Increase this value if you'd like to automatically spin up
   # more instances in response to increased traffic.
   maxInstances: 1
