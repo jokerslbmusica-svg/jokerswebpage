@@ -1,7 +1,7 @@
 import { initializeApp, getApp, getApps, FirebaseApp } from 'firebase/app';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 import { getFirestore, Firestore } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
+import { getAuth, Auth } from 'firebase/auth';
 
 // This configuration is used for client-side Firebase services.
 // It's safe to expose these values.
@@ -15,11 +15,30 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase for client-side
-// This guard ensures that we're not re-initializing the app on every render.
-const app: FirebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+// This guard ensures that we're not re-initializing the app on every render,
+// and that it's only initialized on the client-side.
+const getClientFirebaseApp = (): FirebaseApp => {
+    if (getApps().length) {
+        return getApp();
+    }
+    return initializeApp(firebaseConfig);
+}
 
-const db: Firestore = getFirestore(app);
-const storage: FirebaseStorage = getStorage(app);
-const auth = getAuth(app);
+// Functions to get Firebase services, ensuring they are only initialized once.
+const getClientAuth = (): Auth => {
+    return getAuth(getClientFirebaseApp());
+}
 
-export { app, storage, db, auth };
+const getClientDb = (): Firestore => {
+    return getFirestore(getClientFirebaseApp());
+}
+
+const getClientStorage = (): FirebaseStorage => {
+    return getStorage(getClientFirebaseApp());
+}
+
+// Export functions to be used in components
+export const app: FirebaseApp = getClientFirebaseApp();
+export const auth: Auth = getClientAuth();
+export const db: Firestore = getClientDb();
+export const storage: FirebaseStorage = getClientStorage();
