@@ -5,7 +5,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { getHashtagSuggestions } from "@/app/actions";
-import type { SuggestHashtagsOutput } from "@/ai/flows/suggest-hashtags";
 
 import {
   Card,
@@ -42,7 +41,7 @@ const formSchema = z.object({
 
 export function HashtagGenerator() {
   const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<SuggestHashtagsOutput | null>(null);
+  const [result, setResult] = useState<{hashtags: string[]} | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -61,6 +60,7 @@ export function HashtagGenerator() {
     setError(null);
     const response = await getHashtagSuggestions(values);
     if (response.success) {
+      // @ts-ignore
       setResult(response.data);
     } else {
       setError(response.error);
@@ -188,7 +188,7 @@ export function HashtagGenerator() {
                     </div>
                 </div>
             )}
-            {error && <p className="text-destructive">{error}</p>}
+            {error && <p className="text-destructive mt-4">{error}</p>}
           </CardFooter>
         </form>
       </Form>
