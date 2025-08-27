@@ -22,7 +22,7 @@ import {
   getSongs,
   deleteSong,
   type Song,
-} from "@/app/actions/music.actions";
+} from "@/app/actions";
 import { Loader2, Music, PlusCircle, Trash2 } from "lucide-react";
 import {
     AlertDialog,
