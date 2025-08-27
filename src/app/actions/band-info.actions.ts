@@ -2,8 +2,18 @@
 'use server';
 
 import { revalidatePath } from "next/cache";
-import { adminDb } from "@/lib/firebase-admin";
+import admin from 'firebase-admin';
 
+// Initialize Firebase Admin SDK
+if (!admin.apps.length) {
+  try {
+    admin.initializeApp();
+  } catch (error: any) {
+    console.error("Firebase Admin initialization error:", error.message);
+  }
+}
+
+const adminDb = admin.firestore();
 const BAND_INFO_COLLECTION = "band-info";
 const BIO_DOC_ID = "biography";
 
@@ -12,10 +22,6 @@ const BIO_DOC_ID = "biography";
  * @param bioText - The biography text to save.
  */
 export async function saveBandBio(bioText: string) {
-  if (!adminDb) {
-    console.error("Firebase Admin SDK not initialized.");
-    throw new Error("El servidor no pudo conectarse a la base de datos.");
-  }
   const bioRef = adminDb.collection(BAND_INFO_COLLECTION).doc(BIO_DOC_ID);
   await bioRef.set({
     text: bioText,
@@ -30,10 +36,6 @@ export async function saveBandBio(bioText: string) {
  * @returns The biography text or null if it doesn't exist.
  */
 export async function getBandBio(): Promise<string | null> {
-  if (!adminDb) {
-    console.error("Firebase Admin SDK not initialized. Cannot fetch band bio.");
-    return null;
-  }
   const bioRef = adminDb.collection(BAND_INFO_COLLECTION).doc(BIO_DOC_ID);
   const docSnap = await bioRef.get();
 
