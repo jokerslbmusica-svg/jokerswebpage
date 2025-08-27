@@ -1,9 +1,10 @@
+
 "use client";
 
 import React, { useState, useEffect, useContext, createContext, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut, User } from 'firebase/auth';
-import { auth } from '@/lib/firebase'; // Import the initialized auth instance
+import { auth } from '@/lib/firebase-client'; // Import from the new client-only file
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
