@@ -1,109 +1,96 @@
 
 "use client";
 
-import React, { Suspense } from 'react';
-import Link from "next/link";
-import dynamic from 'next/dynamic';
-import { Hero } from "@/components/sections/hero";
-import { BookingInfo } from "@/components/sections/booking-info";
-import { PaymentInfo } from "@/components/sections/payment-info";
-import { SocialLinks } from "@/components/sections/social-links";
-import { Separator } from "@/components/ui/separator";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/use-auth';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
-// Lazy load components that are below the fold
-const TourDates = React.lazy(() => import('@/components/sections/tour-dates').then(module => ({ default: module.TourDates })));
-const Music = React.lazy(() => import('@/components/sections/music').then(module => ({ default: module.Music })));
-const BandGallery = React.lazy(() => import('@/components/sections/band-gallery').then(module => ({ default: module.BandGallery })));
-const BandBio = React.lazy(() => import('@/components/sections/band-bio').then(module => ({ default: module.BandBio })));
-const FanGallery = React.lazy(() => import('@/components/sections/fan-gallery').then(module => ({ default: module.FanGallery })));
-const FanComments = React.lazy(() => import('@/components/sections/fan-comments').then(module => ({ default: module.FanComments })));
-const LogoGenerator = React.lazy(() => import('@/components/sections/logo-generator').then(module => ({ default: module.LogoGenerator })));
-// Dynamically import PressKit only on the client-side
-const PressKit = dynamic(() => import('@/components/sections/press-kit').then(module => ({ default: module.PressKit })), { ssr: false });
+export const dynamic = 'force-dynamic';
 
+const loginSchema = z.object({
+  email: z.string().email('Por favor, introduce un correo electrónico válido.'),
+  password: z.string().min(1, 'La contraseña es requerida'),
+});
 
-const Spinner = () => (
-  <div className="flex justify-center items-center w-full h-64">
-    <Loader2 className="h-12 w-12 animate-spin text-primary" />
-  </div>
-);
+type LoginFormValues = z.infer<typeof loginSchema>;
 
-export default function Home() {
+export default function LoginPage() {
+  const router = useRouter();
+  const { login } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+  });
+
+  const onSubmit = async (data: LoginFormValues) => {
+    setIsLoading(true);
+    try {
+      await login(data.email, data.password);
+      router.push('/admin');
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error de inicio de sesión',
+        description: 'Correo electrónico o contraseña incorrectos.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <main className="flex min-h-screen flex-col items-center">
-      <Hero />
-      <div className="w-full max-w-7xl p-4 md:p-8 space-y-12 bg-background/90 backdrop-blur-sm rounded-t-2xl">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-          <div className="lg:col-span-2">
-            <BookingInfo />
-          </div>
-          <div className="space-y-8">
-            <PaymentInfo />
-            <SocialLinks />
-          </div>
-        </div>
-
-        <Separator className="my-8" />
-        
-        <Suspense fallback={<Spinner />}>
-          <TourDates />
-        </Suspense>
-        
-        <Separator className="my-8" />
-
-        <Suspense fallback={<Spinner />}>
-          <Music />
-        </Suspense>
-        
-        <Separator className="my-8" />
-
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-          <div className="xl:col-span-2">
-            <Suspense fallback={<Spinner />}>
-              <BandGallery readOnly={true} />
-            </Suspense>
-          </div>
-          <div className="xl:col-span-1">
-            <Suspense fallback={<Spinner />}>
-              <BandBio />
-            </Suspense>
-          </div>
-        </div>
-
-        <Separator className="my-8" />
-
-        <Suspense fallback={<Spinner />}>
-          <FanGallery />
-        </Suspense>
-        
-        <Separator className="my-8" />
-
-        <Suspense fallback={<Spinner />}>
-          <FanComments readOnly={true} />
-        </Suspense>
-        
-        <Separator className="my-8" />
-
-        <Suspense fallback={<Spinner />}>
-          <LogoGenerator />
-        </Suspense>
-        
-        <Separator className="my-8" />
-        
-        <Suspense fallback={<Spinner />}>
-          <PressKit />
-        </Suspense>
-
-      </div>
-      <footer className="w-full bg-primary/90 backdrop-blur-sm text-primary-foreground text-center p-4">
-        <p>&copy; {new Date().getFullYear()} Jokers Live Band. Todos los derechos reservados.</p>
-        <div className="mt-2">
-            <Link href="/login" className="text-xs text-primary-foreground/70 hover:text-primary-foreground hover:underline transition-colors">
-                Admin
-            </Link>
-        </div>
-      </footer>
-    </main>
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle>Acceso de Administrador</CardTitle>
+          <CardDescription>
+            Inicia sesión para gestionar el contenido.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Correo Electrónico</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="tu@correo.com"
+                {...register('email')}
+              />
+              {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Contraseña</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Tu contraseña"
+                {...register('password')}
+              />
+              {errors.password && <p className="text-sm text-destructive">{errors.password.message}</p>}
+            </div>
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isLoading ? 'Iniciando...' : 'Iniciar Sesión'}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
