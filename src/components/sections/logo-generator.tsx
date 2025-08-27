@@ -26,7 +26,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Wand2, Sparkles, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getLogoSuggestion } from "@/app/actions/logo.actions";
-import type { GenerateLogoOutput } from "@/ai/flows/generate-logo";
 
 const formSchema = z.object({
   prompt: z
@@ -39,7 +38,7 @@ type FormValues = z.infer<typeof formSchema>;
 
 export function LogoGenerator() {
   const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<GenerateLogoOutput | null>(null);
+  const [result, setResult] = useState<{imageDataUri: string} | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -58,6 +57,7 @@ export function LogoGenerator() {
     const response = await getLogoSuggestion(values);
 
     if (response.success && response.data) {
+      // @ts-ignore
       setResult(response.data);
     } else {
       setError(response.error ?? "Ocurrió un error desconocido.");
