@@ -1,3 +1,4 @@
+
 // Server-side code
 "use server";
 
@@ -82,7 +83,7 @@ export async function uploadBandMedia(formData: FormData) {
  * @returns A list of media items.
  */
 export async function getBandMedia() {
-    const snapshot = await adminDb.collection(BAND_GALLERY_COLlection).orderBy("createdAt", "desc").get();
+    const snapshot = await adminDb.collection(BAND_GALLERY_COLLECTION).orderBy("createdAt", "desc").get();
     
     if (snapshot.empty) {
         return [];
