@@ -3,8 +3,18 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { adminDb } from "@/lib/firebase-admin";
+import admin from 'firebase-admin';
 
+// Initialize Firebase Admin SDK
+if (!admin.apps.length) {
+  try {
+    admin.initializeApp();
+  } catch (error: any) {
+    console.error("Firebase Admin initialization error:", error.message);
+  }
+}
+
+const adminDb = admin.firestore();
 const FAN_GALLERY_COLLECTION = "fan-gallery";
 
 // Helper to convert file to Base64
@@ -20,10 +30,6 @@ async function fileToBase64(file: File): Promise<string> {
  * @returns The uploaded media item with its id, name, URL (as data URI), and type.
  */
 export async function uploadFanMedia(formData: FormData) {
-  if (!adminDb) {
-    console.error("Firebase Admin SDK not initialized.");
-    throw new Error("El servidor no pudo conectarse a la base de datos.");
-  }
   const file = formData.get("file") as File;
   if (!file) {
     throw new Error("No file provided.");
@@ -59,10 +65,6 @@ export async function uploadFanMedia(formData: FormData) {
  * @returns A list of media items.
  */
 export async function getFanMedia() {
-    if (!adminDb) {
-        console.error("Firebase Admin SDK not initialized. Cannot fetch fan media.");
-        return [];
-    }
     const snapshot = await adminDb.collection(FAN_GALLERY_COLLECTION).orderBy("createdAt", "desc").get();
     
     if (snapshot.empty) {
@@ -88,10 +90,6 @@ export async function getFanMedia() {
  * @param itemId - The ID of the document to delete.
  */
 export async function deleteFanMedia(itemId: string) {
-  if (!adminDb) {
-    console.error("Firebase Admin SDK not initialized.");
-    throw new Error("El servidor no pudo conectarse a la base de datos.");
-  }
   if (!itemId) {
     throw new Error("Item ID not provided.");
   }
