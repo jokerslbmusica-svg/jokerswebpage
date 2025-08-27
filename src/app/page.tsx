@@ -94,7 +94,9 @@ export default function Home() {
         
         <Separator className="my-8" />
         
-        <PressKit />
+        <Suspense fallback={<Spinner />}>
+          <PressKit />
+        </Suspense>
 
       </div>
       <footer className="w-full bg-primary/90 backdrop-blur-sm text-primary-foreground text-center p-4">
@@ -108,4 +110,3 @@ export default function Home() {
     </main>
   );
 }
-
