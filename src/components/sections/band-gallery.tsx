@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -23,7 +24,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Upload, Download, Trash2, Loader2, Camera, Youtube, Image as ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getBandMedia, uploadBandMedia, deleteBandMedia } from "@/app/actions";
+import { getBandMedia, uploadBandMedia, deleteBandMedia, type MediaItem } from "@/app/actions";
 import { ScrollArea } from "../ui/scroll-area";
 import { Label } from "../ui/label";
 
@@ -35,13 +36,6 @@ const imageSchema = z.object({
 const videoSchema = z.object({
   videoUrl: z.string().url("Por favor, introduce una URL válida de YouTube."),
 });
-
-interface MediaItem {
-  id: string;
-  name: string;
-  url: string;
-  type: 'image' | 'video';
-}
 
 interface BandGalleryProps {
   readOnly?: boolean;
