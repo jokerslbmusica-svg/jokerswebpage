@@ -17,6 +17,8 @@ import { MusicManager } from '@/components/sections/music-manager';
 import { FanGalleryManager } from '@/components/sections/fan-gallery-manager';
 import { SocialPostGenerator } from '@/components/sections/social-post-generator';
 
+export const dynamic = 'force-dynamic';
+
 export default function AdminPage() {
   const { user, loading, logout } = useAuth();
   const router = useRouter();
