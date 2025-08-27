@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -22,7 +23,7 @@ import {
   deleteSong,
   type Song,
 } from "@/app/actions/music.actions";
-import { Loader2, Music, PlusCircle, Trash2, Upload } from "lucide-react";
+import { Loader2, Music, PlusCircle, Trash2 } from "lucide-react";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -37,7 +38,7 @@ import {
 
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
-const ACCEPTED_AUDIO_TYPES = ["audio/mpeg", "audio/wav", "audio/ogg"];
+const ACCEPTED_AUDIO_TYPES = ["audio/mpeg", "audio/wav", "audio/ogg", "audio/mp3"];
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 
 const songSchema = z.object({
