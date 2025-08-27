@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Music as MusicIcon, Play, Pause, Loader2 } from "lucide-react";
-import { getSongs, type Song } from "@/app/actions/music.actions";
+import { getSongs, type Song } from "@/app/actions";
 
 export function Music() {
     const [songs, setSongs] = useState<Song[]>([]);
