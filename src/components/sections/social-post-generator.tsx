@@ -1,10 +1,11 @@
+
 "use client";
 
 import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { getSocialPostSuggestion } from "@/app/actions/social-post.actions";
+import { getSocialPostSuggestion } from "@/app/actions";
 import { socialPlatforms } from "@/config/band-constants";
 
 import {
