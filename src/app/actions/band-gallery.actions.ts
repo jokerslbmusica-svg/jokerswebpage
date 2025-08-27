@@ -2,8 +2,18 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { adminDb } from '@/lib/firebase-admin';
+import admin from 'firebase-admin';
 
+// Initialize Firebase Admin SDK
+if (!admin.apps.length) {
+  try {
+    admin.initializeApp();
+  } catch (error: any) {
+    console.error("Firebase Admin initialization error:", error.message);
+  }
+}
+
+const adminDb = admin.firestore();
 const BAND_GALLERY_COLLECTION = "band-gallery";
 
 // Helper to convert file to Base64
@@ -29,10 +39,6 @@ function getYouTubeID(url: string) {
  * @returns The uploaded media item with its id, name, URL, and type.
  */
 export async function uploadBandMedia(formData: FormData) {
-  if (!adminDb) {
-    console.error("Firebase Admin SDK not initialized.");
-    throw new Error("El servidor no pudo conectarse a la base de datos.");
-  }
   const file = formData.get("file") as File | null;
   const videoUrl = formData.get("videoUrl") as string | null;
 
@@ -76,11 +82,7 @@ export async function uploadBandMedia(formData: FormData) {
  * @returns A list of media items.
  */
 export async function getBandMedia() {
-    if (!adminDb) {
-        console.error("Firebase Admin SDK not initialized. Cannot fetch band media.");
-        return [];
-    }
-    const snapshot = await adminDb.collection(BAND_GALLERY_COLLECTION).orderBy("createdAt", "desc").get();
+    const snapshot = await adminDb.collection(BAND_GALLERY_COLlection).orderBy("createdAt", "desc").get();
     
     if (snapshot.empty) {
         return [];
@@ -105,10 +107,6 @@ export async function getBandMedia() {
  * @param itemId - The ID of the document to delete.
  */
 export async function deleteBandMedia(itemId: string) {
-  if (!adminDb) {
-    console.error("Firebase Admin SDK not initialized.");
-    throw new Error("El servidor no pudo conectarse a la base de datos.");
-  }
   if (!itemId) {
     throw new Error("Item ID not provided.");
   }
