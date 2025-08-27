@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -24,7 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Upload, Download, Trash2, Loader2, Camera, Youtube, Image as ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getBandMedia, uploadBandMedia, deleteBandMedia } from "@/app/actions/band-gallery.actions";
+import { getBandMedia, uploadBandMedia, deleteBandMedia } from "@/app/actions";
 import { ScrollArea } from "../ui/scroll-area";
 import { Label } from "../ui/label";
 
