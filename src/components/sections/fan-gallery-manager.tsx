@@ -18,14 +18,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Users, Download, Trash2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getFanMedia, deleteFanMedia } from "@/app/actions/fan-gallery.actions";
-
-interface MediaItem {
-  id: string;
-  name: string;
-  url: string;
-  type: 'image' | 'video';
-}
+import { getFanMedia, deleteFanMedia, type MediaItem } from "@/app/actions";
 
 export function FanGalleryManager() {
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
