@@ -4,14 +4,17 @@
 import { revalidatePath } from "next/cache";
 import admin from 'firebase-admin';
 
-// Initialize Firebase Admin SDK
+// Initialize Firebase Admin SDK if not already initialized
 if (!admin.apps.length) {
   try {
-    admin.initializeApp();
+    admin.initializeApp({
+        credential: admin.credential.applicationDefault(),
+    });
   } catch (error: any) {
     console.error("Firebase Admin initialization error:", error.message);
   }
 }
+
 
 const adminDb = admin.firestore();
 const BAND_INFO_COLLECTION = "band-info";
