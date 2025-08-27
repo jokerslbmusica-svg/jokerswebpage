@@ -2,8 +2,18 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { adminDb } from "@/lib/firebase-admin";
+import admin from 'firebase-admin';
 
+// Initialize Firebase Admin SDK
+if (!admin.apps.length) {
+  try {
+    admin.initializeApp();
+  } catch (error: any) {
+    console.error("Firebase Admin initialization error:", error.message);
+  }
+}
+
+const adminDb = admin.firestore();
 const TOUR_DATES_COLLECTION = "tour-dates";
 
 export interface TourDate {
@@ -21,10 +31,6 @@ export interface TourDate {
  * @param dateData - The data for the new tour date.
  */
 export async function addTourDate(dateData: Omit<TourDate, 'id'>) {
-    if (!adminDb) {
-        console.error("Firebase Admin SDK not initialized.");
-        throw new Error("El servidor no pudo conectarse a la base de datos.");
-    }
     await adminDb.collection(TOUR_DATES_COLLECTION).add({
         ...dateData,
         createdAt: new Date(),
@@ -38,10 +44,6 @@ export async function addTourDate(dateData: Omit<TourDate, 'id'>) {
  * @returns A list of tour dates.
  */
 export async function getTourDates(): Promise<TourDate[]> {
-    if (!adminDb) {
-        console.error("Firebase Admin SDK not initialized. Cannot fetch tour dates.");
-        return [];
-    }
     const snapshot = await adminDb.collection(TOUR_DATES_COLLECTION).orderBy("date", "asc").get();
     
     if (snapshot.empty) {
@@ -69,10 +71,6 @@ export async function getTourDates(): Promise<TourDate[]> {
  * @param dateId - The ID of the document to delete.
  */
 export async function deleteTourDate(dateId: string) {
-    if (!adminDb) {
-        console.error("Firebase Admin SDK not initialized.");
-        throw new Error("El servidor no pudo conectarse a la base de datos.");
-    }
     if (!dateId) {
         throw new Error("Date ID not provided.");
     }
