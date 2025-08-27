@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from 'react';
@@ -8,8 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Download, FileText, Image as ImageIcon, Briefcase, Mail, Phone, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getBandBio } from '@/app/actions/band-info.actions';
-import { getBandMedia } from '@/app/actions/band-gallery.actions';
+import { getBandBio, getBandMedia } from '@/app/actions';
 
 // Helper function to trigger file download in the browser
 const downloadFile = (blob: Blob, filename: string) => {
