@@ -3,10 +3,6 @@
 
 import { revalidatePath } from "next/cache";
 import admin from 'firebase-admin';
-import type { TourDate } from './actions/tour-dates.actions';
-import type { Song } from './actions/music.actions';
-import type { FanComment } from './actions/fan-comments.actions';
-
 
 // ====================================================================
 // Firebase Admin Initialization
@@ -23,6 +19,45 @@ if (!admin.apps.length) {
 }
 const adminDb = admin.firestore();
 const adminStorage = admin.storage();
+
+
+// ====================================================================
+// Collection Types
+// ====================================================================
+export interface TourDate {
+    id: string;
+    eventName: string;
+    venue: string;
+    city: string;
+    date: string;
+    time: string;
+    venueUrl?: string;
+}
+
+export interface Song {
+    id: string;
+    title: string;
+    artist: string;
+    audioUrl: string;
+    coverUrl: string;
+    audioPath: string;
+    coverPath: string;
+}
+
+export interface FanComment {
+    id: string;
+    name: string;
+    comment: string;
+    createdAt: string;
+    status: 'pending' | 'approved';
+}
+
+export interface MediaItem {
+    id: string;
+    name: string;
+    url: string;
+    type: 'image' | 'video';
+}
 
 
 // ====================================================================
@@ -94,7 +129,7 @@ async function uploadFileToStorage(file: File, path: string) {
 // Band Gallery Actions
 // ====================================================================
 
-export async function uploadBandMedia(formData: FormData) {
+export async function uploadBandMedia(formData: FormData): Promise<MediaItem> {
   const file = formData.get("file") as File | null;
   const videoUrl = formData.get("videoUrl") as string | null;
 
@@ -130,16 +165,16 @@ export async function uploadBandMedia(formData: FormData) {
   }
 }
 
-export async function getBandMedia() {
+export async function getBandMedia(): Promise<MediaItem[]> {
     const snapshot = await adminDb.collection(BAND_GALLERY_COLLECTION).orderBy("createdAt", "desc").get();
     if (snapshot.empty) return [];
     return snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data()
-    })) as { id: string; name: string; url: string; type: 'image' | 'video' }[];
+    })) as MediaItem[];
 }
 
-export async function deleteBandMedia(itemId: string) {
+export async function deleteBandMedia(itemId: string): Promise<void> {
   if (!itemId) throw new Error("Item ID not provided.");
   await adminDb.collection(BAND_GALLERY_COLLECTION).doc(itemId).delete();
   revalidatePath("/");
@@ -150,7 +185,7 @@ export async function deleteBandMedia(itemId: string) {
 // Band Info (Biography) Actions
 // ====================================================================
 
-export async function saveBandBio(bioText: string) {
+export async function saveBandBio(bioText: string): Promise<void> {
   const bioRef = adminDb.collection(BAND_INFO_COLLECTION).doc(BIO_DOC_ID);
   await bioRef.set({ text: bioText, updatedAt: new Date() }, { merge: true });
   revalidatePath("/");
@@ -171,7 +206,7 @@ export async function getBio(input: any) {
 // Fan Comments Actions
 // ====================================================================
 
-export async function addFanComment(commentData: Omit<FanComment, 'id' | 'createdAt' | 'status'>) {
+export async function addFanComment(commentData: Omit<FanComment, 'id' | 'createdAt' | 'status'>): Promise<void> {
     await adminDb.collection(FAN_COMMENTS_COLLECTION).add({
         ...commentData,
         status: "pending",
@@ -196,14 +231,14 @@ export async function getFanComments(): Promise<FanComment[]> {
     });
 }
 
-export async function deleteFanComment(commentId: string) {
+export async function deleteFanComment(commentId: string): Promise<void> {
     if (!commentId) throw new Error("Comment ID not provided.");
     await adminDb.collection(FAN_COMMENTS_COLLECTION).doc(commentId).delete();
     revalidatePath("/");
     revalidatePath("/admin");
 }
 
-export async function approveFanComment(commentId: string) {
+export async function approveFanComment(commentId: string): Promise<void> {
     if (!commentId) throw new Error("Comment ID not provided.");
     await adminDb.collection(FAN_COMMENTS_COLLECTION).doc(commentId).update({ status: "approved" });
     revalidatePath("/");
@@ -215,7 +250,7 @@ export async function approveFanComment(commentId: string) {
 // Fan Gallery Actions
 // ====================================================================
 
-export async function uploadFanMedia(formData: FormData) {
+export async function uploadFanMedia(formData: FormData): Promise<MediaItem> {
   const file = formData.get("file") as File;
   if (!file) throw new Error("No file provided.");
   if (!file.type.startsWith('image/')) throw new Error("Only image files are allowed.");
@@ -234,16 +269,16 @@ export async function uploadFanMedia(formData: FormData) {
   return { id: docRef.id, name: file.name, url: dataUrl, type: 'image' as const };
 }
 
-export async function getFanMedia() {
+export async function getFanMedia(): Promise<MediaItem[]> {
     const snapshot = await adminDb.collection(FAN_GALLERY_COLLECTION).orderBy("createdAt", "desc").get();
     if (snapshot.empty) return [];
     return snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data()
-    })) as { id: string; name: string; url: string; type: 'image' | 'video' }[];
+    })) as MediaItem[];
 }
 
-export async function deleteFanMedia(itemId: string) {
+export async function deleteFanMedia(itemId: string): Promise<void> {
   if (!itemId) throw new Error("Item ID not provided.");
   await adminDb.collection(FAN_GALLERY_COLLECTION).doc(itemId).delete();
   revalidatePath("/");
@@ -254,7 +289,7 @@ export async function deleteFanMedia(itemId: string) {
 // Music Actions
 // ====================================================================
 
-export async function addSong(formData: FormData) {
+export async function addSong(formData: FormData): Promise<void> {
     const title = formData.get("title") as string;
     const artist = formData.get("artist") as string;
     const audioFile = formData.get("audioFile") as File;
@@ -287,7 +322,7 @@ export async function getSongs(): Promise<Song[]> {
     return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Song[];
 }
 
-export async function deleteSong(song: Song) {
+export async function deleteSong(song: Song): Promise<void> {
     if (!song || !song.id) throw new Error("Song ID not provided.");
     
     const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
@@ -309,7 +344,7 @@ export async function deleteSong(song: Song) {
 // Tour Dates Actions
 // ====================================================================
 
-export async function addTourDate(dateData: Omit<TourDate, 'id'>) {
+export async function addTourDate(dateData: Omit<TourDate, 'id'>): Promise<void> {
     await adminDb.collection(TOUR_DATES_COLLECTION).add({ ...dateData, createdAt: new Date() });
     revalidatePath("/");
     revalidatePath("/admin");
@@ -321,7 +356,7 @@ export async function getTourDates(): Promise<TourDate[]> {
     return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as TourDate[];
 }
 
-export async function deleteTourDate(dateId: string) {
+export async function deleteTourDate(dateId: string): Promise<void> {
     if (!dateId) throw new Error("Date ID not provided.");
     await adminDb.collection(TOUR_DATES_COLLECTION).doc(dateId).delete();
     revalidatePath("/");
