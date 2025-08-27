@@ -1,10 +1,6 @@
 // Server-side code
 "use server";
 
-import {
-  generateSocialPost,
-  type GenerateSocialPostInput,
-} from "@/ai/flows/generate-social-post";
 import type { socialPlatforms } from "@/config/band-constants";
 
 
@@ -22,31 +18,6 @@ async function fileToBase64(file: File): Promise<string> {
  * @returns An object with either the generated post or an error message.
  */
 export async function getSocialPostSuggestion(formData: FormData) {
-  try {
-    const topic = formData.get("topic") as string;
-    const platform = formData.get("platform") as (typeof socialPlatforms)[number];
-    const bandName = formData.get("bandName") as string;
-    const flyerFile = formData.get("flyer") as File | null;
-
-    if (!topic || !platform || !bandName) {
-        throw new Error("Topic, platform, and band name are required.");
-    }
-    
-    const input: GenerateSocialPostInput = {
-        topic,
-        platform,
-        bandName,
-    };
-    
-    if (flyerFile && flyerFile.size > 0) {
-        input.flyerDataUri = await fileToBase64(flyerFile);
-    }
-
-    const result = await generateSocialPost(input);
-    return { success: true, data: result };
-  } catch (error: any) {
-    console.error("Error generating social post:", error);
-    // Return a user-friendly error message.
-    return { success: false, error: error.message || "Failed to generate post. Please try again." };
-  }
+    console.warn("Genkit dependencies are not installed. Skipping AI generation.");
+    return { success: false, error: "La función de IA no está disponible en este momento. Por favor, inténtalo de nuevo más tarde." };
 }
