@@ -1,3 +1,4 @@
+
 // This is a placeholder for the admin page.
 // We will add protected content here in the next steps.
 "use client";
