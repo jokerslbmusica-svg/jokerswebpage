@@ -1,3 +1,4 @@
+
 // Server-side code
 "use server";
 
@@ -36,7 +37,11 @@ export interface Song {
  */
 async function uploadFile(file: File, path: string) {
     const filePath = `${path}/${Date.now()}-${file.name}`;
-    const bucket = adminStorage.bucket();
+    const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+    if (!bucketName) {
+        throw new Error("Firebase Storage bucket name is not configured.");
+    }
+    const bucket = adminStorage.bucket(bucketName);
     const buffer = Buffer.from(await file.arrayBuffer());
 
     await bucket.file(filePath).save(buffer, {
@@ -119,8 +124,12 @@ export async function deleteSong(song: Song) {
     if (!song || !song.id) {
         throw new Error("Song ID not provided.");
     }
-
-    const bucket = adminStorage.bucket();
+    
+    const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+     if (!bucketName) {
+        throw new Error("Firebase Storage bucket name is not configured.");
+    }
+    const bucket = adminStorage.bucket(bucketName);
 
     // Delete files from storage and document from Firestore in parallel
     await Promise.all([
