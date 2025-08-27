@@ -13,6 +13,8 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
+export const dynamic = 'force-dynamic';
+
 const loginSchema = z.object({
   email: z.string().email('Por favor, introduce un correo electrónico válido.'),
   password: z.string().min(1, 'La contraseña es requerida'),
