@@ -9,14 +9,7 @@ import { Button } from "@/components/ui/button";
 import { UploadCloud, Download, Loader2, Facebook, Instagram } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { getFanMedia, uploadFanMedia } from "@/app/actions/fan-gallery.actions";
-
-interface MediaItem {
-  id: string;
-  name: string;
-  url: string;
-  type: 'image' | 'video';
-}
+import { getFanMedia, uploadFanMedia, type MediaItem } from "@/app/actions";
 
 export function FanGallery() {
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
