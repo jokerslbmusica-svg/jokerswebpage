@@ -1,7 +1,10 @@
+
+
 "use client";
 
 import React, { Suspense } from 'react';
 import Link from "next/link";
+import dynamic from 'next/dynamic';
 import { Hero } from "@/components/sections/hero";
 import { BookingInfo } from "@/components/sections/booking-info";
 import { PaymentInfo } from "@/components/sections/payment-info";
@@ -17,7 +20,8 @@ const BandBio = React.lazy(() => import('@/components/sections/band-bio').then(m
 const FanGallery = React.lazy(() => import('@/components/sections/fan-gallery').then(module => ({ default: module.FanGallery })));
 const FanComments = React.lazy(() => import('@/components/sections/fan-comments').then(module => ({ default: module.FanComments })));
 const LogoGenerator = React.lazy(() => import('@/components/sections/logo-generator').then(module => ({ default: module.LogoGenerator })));
-const PressKit = React.lazy(() => import('@/components/sections/press-kit').then(module => ({ default: module.PressKit })));
+// Dynamically import PressKit only on the client-side
+const PressKit = dynamic(() => import('@/components/sections/press-kit').then(module => ({ default: module.PressKit })), { ssr: false });
 
 
 const Spinner = () => (
