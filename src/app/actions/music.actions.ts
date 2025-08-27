@@ -2,8 +2,19 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { adminDb, adminStorage } from "@/lib/firebase-admin";
+import admin from 'firebase-admin';
 
+// Initialize Firebase Admin SDK
+if (!admin.apps.length) {
+  try {
+    admin.initializeApp();
+  } catch (error: any) {
+    console.error("Firebase Admin initialization error:", error.message);
+  }
+}
+
+const adminDb = admin.firestore();
+const adminStorage = admin.storage();
 const MUSIC_COLLECTION = "music";
 const MUSIC_STORAGE_PATH = "music";
 
@@ -24,10 +35,6 @@ export interface Song {
  * @returns An object with the download URL and storage path.
  */
 async function uploadFile(file: File, path: string) {
-    if (!adminStorage) {
-        console.error("Firebase Admin SDK not initialized.");
-        throw new Error("El servidor no pudo conectarse al almacenamiento.");
-    }
     const filePath = `${path}/${Date.now()}-${file.name}`;
     const bucket = adminStorage.bucket();
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -49,10 +56,6 @@ async function uploadFile(file: File, path: string) {
  * @param formData - The form data containing song details and files.
  */
 export async function addSong(formData: FormData) {
-    if (!adminDb || !adminStorage) {
-        console.error("Firebase Admin SDK not initialized.");
-        throw new Error("El servidor no pudo conectarse a la base de datos o al almacenamiento.");
-    }
     const title = formData.get("title") as string;
     const artist = formData.get("artist") as string;
     const audioFile = formData.get("audioFile") as File;
@@ -88,10 +91,6 @@ export async function addSong(formData: FormData) {
  * @returns A list of songs.
  */
 export async function getSongs(): Promise<Song[]> {
-    if (!adminDb) {
-        console.error("Firebase Admin SDK not initialized. Cannot fetch songs.");
-        return [];
-    }
     const snapshot = await adminDb.collection(MUSIC_COLLECTION).orderBy("createdAt", "desc").get();
     
     if (snapshot.empty) {
@@ -117,10 +116,6 @@ export async function getSongs(): Promise<Song[]> {
  * @param song - The song object to delete.
  */
 export async function deleteSong(song: Song) {
-    if (!adminDb || !adminStorage) {
-        console.error("Firebase Admin SDK not initialized.");
-        throw new Error("El servidor no pudo conectarse a la base de datos o al almacenamiento.");
-    }
     if (!song || !song.id) {
         throw new Error("Song ID not provided.");
     }
