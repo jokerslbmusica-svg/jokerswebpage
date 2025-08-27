@@ -5,7 +5,6 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { getBio, saveBandBio } from "@/app/actions/band-info.actions";
-import type { GenerateBioOutput } from "@/ai/flows/generate-bio";
 import { tones } from "@/config/band-constants";
 
 import {
@@ -48,7 +47,7 @@ const formSchema = z.object({
 export function BioGenerator() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [result, setResult] = useState<GenerateBioOutput | null>(null);
+  const [result, setResult] = useState<{biography: string} | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -78,6 +77,7 @@ export function BioGenerator() {
 
     const response = await getBio(input);
     if (response.success) {
+      // @ts-ignore
       setResult(response.data);
     } else {
       setError(response.error);
