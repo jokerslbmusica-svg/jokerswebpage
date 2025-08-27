@@ -166,12 +166,20 @@ export async function uploadBandMedia(formData: FormData): Promise<MediaItem> {
 }
 
 export async function getBandMedia(): Promise<MediaItem[]> {
-    const snapshot = await adminDb.collection(BAND_GALLERY_COLLECTION).orderBy("createdAt", "desc").get();
-    if (snapshot.empty) return [];
-    return snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data()
-    })) as MediaItem[];
+    try {
+        const snapshot = await adminDb.collection(BAND_GALLERY_COLLECTION).orderBy("createdAt", "desc").get();
+        if (snapshot.empty) return [];
+        return snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data()
+        })) as MediaItem[];
+    } catch (error: any) {
+        if (error.code === 5) { // NOT_FOUND error, collection likely doesn't exist
+            console.log("Band gallery collection not found, returning empty array.");
+            return [];
+        }
+        throw error;
+    }
 }
 
 export async function deleteBandMedia(itemId: string): Promise<void> {
@@ -193,8 +201,16 @@ export async function saveBandBio(bioText: string): Promise<void> {
 }
 
 export async function getBandBio(): Promise<string | null> {
-  const docSnap = await adminDb.collection(BAND_INFO_COLLECTION).doc(BIO_DOC_ID).get();
-  return docSnap.exists ? docSnap.data()?.text : null;
+  try {
+    const docSnap = await adminDb.collection(BAND_INFO_COLLECTION).doc(BIO_DOC_ID).get();
+    return docSnap.exists ? docSnap.data()?.text : null;
+  } catch (error: any) {
+    if (error.code === 5) { // NOT_FOUND error
+        console.log("Band info collection/document not found, returning null.");
+        return null;
+    }
+    throw error;
+  }
 }
 
 export async function getBio(input: any) {
@@ -217,18 +233,26 @@ export async function addFanComment(commentData: Omit<FanComment, 'id' | 'create
 }
 
 export async function getFanComments(): Promise<FanComment[]> {
-    const snapshot = await adminDb.collection(FAN_COMMENTS_COLLECTION).orderBy("createdAt", "desc").get();
-    if (snapshot.empty) return [];
-    return snapshot.docs.map((doc) => {
-        const data = doc.data();
-        return {
-            id: doc.id,
-            name: data.name,
-            comment: data.comment,
-            status: data.status || 'approved',
-            createdAt: data.createdAt?.toDate().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }) || '',
-        } as FanComment;
-    });
+    try {
+        const snapshot = await adminDb.collection(FAN_COMMENTS_COLLECTION).orderBy("createdAt", "desc").get();
+        if (snapshot.empty) return [];
+        return snapshot.docs.map((doc) => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                name: data.name,
+                comment: data.comment,
+                status: data.status || 'approved',
+                createdAt: data.createdAt?.toDate().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }) || '',
+            } as FanComment;
+        });
+    } catch (error: any) {
+        if (error.code === 5) { // NOT_FOUND error, collection likely doesn't exist
+            console.log("Fan comments collection not found, returning empty array.");
+            return [];
+        }
+        throw error;
+    }
 }
 
 export async function deleteFanComment(commentId: string): Promise<void> {
@@ -270,12 +294,20 @@ export async function uploadFanMedia(formData: FormData): Promise<MediaItem> {
 }
 
 export async function getFanMedia(): Promise<MediaItem[]> {
-    const snapshot = await adminDb.collection(FAN_GALLERY_COLLECTION).orderBy("createdAt", "desc").get();
-    if (snapshot.empty) return [];
-    return snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data()
-    })) as MediaItem[];
+    try {
+        const snapshot = await adminDb.collection(FAN_GALLERY_COLLECTION).orderBy("createdAt", "desc").get();
+        if (snapshot.empty) return [];
+        return snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data()
+        })) as MediaItem[];
+    } catch (error: any) {
+        if (error.code === 5) { // NOT_FOUND error, collection likely doesn't exist
+            console.log("Fan gallery collection not found, returning empty array.");
+            return [];
+        }
+        throw error;
+    }
 }
 
 export async function deleteFanMedia(itemId: string): Promise<void> {
@@ -317,9 +349,17 @@ export async function addSong(formData: FormData): Promise<void> {
 }
 
 export async function getSongs(): Promise<Song[]> {
-    const snapshot = await adminDb.collection(MUSIC_COLLECTION).orderBy("createdAt", "desc").get();
-    if (snapshot.empty) return [];
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Song[];
+    try {
+        const snapshot = await adminDb.collection(MUSIC_COLLECTION).orderBy("createdAt", "desc").get();
+        if (snapshot.empty) return [];
+        return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Song[];
+    } catch (error: any) {
+        if (error.code === 5) { // NOT_FOUND error, collection likely doesn't exist
+            console.log("Music collection not found, returning empty array.");
+            return [];
+        }
+        throw error;
+    }
 }
 
 export async function deleteSong(song: Song): Promise<void> {
@@ -351,9 +391,17 @@ export async function addTourDate(dateData: Omit<TourDate, 'id'>): Promise<void>
 }
 
 export async function getTourDates(): Promise<TourDate[]> {
-    const snapshot = await adminDb.collection(TOUR_DATES_COLLECTION).orderBy("date", "asc").get();
-    if (snapshot.empty) return [];
-    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as TourDate[];
+    try {
+        const snapshot = await adminDb.collection(TOUR_DATES_COLLECTION).orderBy("date", "asc").get();
+        if (snapshot.empty) return [];
+        return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as TourDate[];
+    } catch (error: any) {
+        if (error.code === 5) { // NOT_FOUND error, collection likely doesn't exist
+            console.log("Tour dates collection not found, returning empty array.");
+            return [];
+        }
+        throw error;
+    }
 }
 
 export async function deleteTourDate(dateId: string): Promise<void> {
