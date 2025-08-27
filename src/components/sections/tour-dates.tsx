@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, MapPin, Clock, Loader2 } from "lucide-react";
-import { getTourDates, type TourDate } from "@/app/actions/tour-dates.actions";
+import { getTourDates, type TourDate } from "@/app/actions";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
