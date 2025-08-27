@@ -11,26 +11,24 @@ import { SocialLinks } from "@/components/sections/social-links";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from 'lucide-react';
 
-// Lazy load components that are below the fold
-const TourDates = React.lazy(() => import('@/components/sections/tour-dates').then(module => ({ default: module.TourDates })));
-const Music = React.lazy(() => import('@/components/sections/music').then(module => ({ default: module.Music })));
-const BandGallery = React.lazy(() => import('@/components/sections/band-gallery').then(module => ({ default: module.BandGallery })));
-const BandBio = React.lazy(() => import('@/components/sections/band-bio').then(module => ({ default: module.BandBio })));
-const FanGallery = React.lazy(() => import('@/components/sections/fan-gallery').then(module => ({ default: module.FanGallery })));
-const FanComments = React.lazy(() => import('@/components/sections/fan-comments').then(module => ({ default: module.FanComments })));
-const LogoGenerator = React.lazy(() => import('@/components/sections/logo-generator').then(module => ({ default: module.LogoGenerator })));
-// Dynamically import PressKit only on the client-side and disable SSR
-const PressKit = dynamic(() => import('@/components/sections/press-kit').then(module => module.PressKit), { 
-    ssr: false,
-    loading: () => <Spinner />,
-});
-
-
 const Spinner = () => (
   <div className="flex justify-center items-center w-full h-64">
     <Loader2 className="h-12 w-12 animate-spin text-primary" />
   </div>
 );
+
+// Lazy load components that are below the fold using Next.js dynamic import
+const TourDates = dynamic(() => import('@/components/sections/tour-dates').then(module => module.TourDates), { loading: () => <Spinner /> });
+const Music = dynamic(() => import('@/components/sections/music').then(module => module.Music), { loading: () => <Spinner /> });
+const BandGallery = dynamic(() => import('@/components/sections/band-gallery').then(module => module.BandGallery), { loading: () => <Spinner /> });
+const BandBio = dynamic(() => import('@/components/sections/band-bio').then(module => module.BandBio), { loading: () => <Spinner /> });
+const FanGallery = dynamic(() => import('@/components/sections/fan-gallery').then(module => module.FanGallery), { loading: () => <Spinner /> });
+const FanComments = dynamic(() => import('@/components/sections/fan-comments').then(module => module.FanComments), { loading: () => <Spinner /> });
+const LogoGenerator = dynamic(() => import('@/components/sections/logo-generator').then(module => module.LogoGenerator), { loading: () => <Spinner /> });
+const PressKit = dynamic(() => import('@/components/sections/press-kit').then(module => module.PressKit), { 
+    ssr: false,
+    loading: () => <Spinner />,
+});
 
 export default function Home() {
   return (
