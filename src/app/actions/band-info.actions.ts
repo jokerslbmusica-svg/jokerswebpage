@@ -2,10 +2,6 @@
 'use server';
 
 import { revalidatePath } from "next/cache";
-import {
-  generateBio,
-  type GenerateBioInput,
-} from "@/ai/flows/generate-bio";
 import { adminDb } from "@/lib/firebase-admin";
 
 const BAND_INFO_COLLECTION = "band-info";
@@ -54,13 +50,11 @@ export async function getBandBio(): Promise<string | null> {
  * @param input - The input data for generating the biography.
  * @returns An object with either the generated biography or an error message.
  */
-export async function getBio(input: GenerateBioInput) {
-  try {
-    const result = await generateBio(input);
-    return { success: true, data: result };
-  } catch (error) {
-    console.error("Error generating biography:", error);
-    // Return a user-friendly error message.
-    return { success: false, error: "Failed to generate biography. Please try again." };
-  }
+export async function getBio(input: any) {
+    console.warn("Genkit dependencies are not installed. Skipping AI generation.");
+    // Return a dummy response or an error.
+    return { 
+        success: false, 
+        error: "La función de IA no está disponible en este momento. Por favor, inténtelo de nuevo más tarde." 
+    };
 }
