@@ -1,10 +1,11 @@
+
 "use client";
 
 import { useState } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { getBio, saveBandBio } from "@/app/actions/band-info.actions";
+import { getBio, saveBandBio } from "@/app/actions";
 import { tones } from "@/config/band-constants";
 
 import {
