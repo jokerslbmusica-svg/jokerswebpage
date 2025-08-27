@@ -13,17 +13,9 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-let app: FirebaseApp;
-if (getApps().length === 0) {
-    app = initializeApp(firebaseConfig);
-} else {
-    app = getApp();
-}
+const app: FirebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
 const db: Firestore = getFirestore(app);
 const storage: FirebaseStorage = getStorage(app);
 
-// Dummy export to avoid breaking other files instantly
-const firebaseInitialization = Promise.resolve();
-
-export { app, storage, db, firebaseInitialization };
+export { app, storage, db };
