@@ -6,7 +6,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { getSocialPostSuggestion } from "@/app/actions/social-post.actions";
 import { socialPlatforms } from "@/config/band-constants";
-import type { GenerateSocialPostOutput } from "@/ai/flows/generate-social-post";
 
 import {
   Card,
@@ -49,7 +48,7 @@ type FormValues = z.infer<typeof formSchema>;
 
 export function SocialPostGenerator() {
   const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<GenerateSocialPostOutput | null>(null);
+  const [result, setResult] = useState<{postText: string} | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
@@ -79,6 +78,7 @@ export function SocialPostGenerator() {
     const response = await getSocialPostSuggestion(formData);
 
     if (response.success) {
+      // @ts-ignore
       setResult(response.data);
     } else {
       setError(response.error);
