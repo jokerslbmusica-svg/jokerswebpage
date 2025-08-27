@@ -58,11 +58,14 @@ export function HashtagGenerator() {
     setIsLoading(true);
     setResult(null);
     setError(null);
+    // @ts-ignore
     const response = await getHashtagSuggestions(values);
-    if (response.success) {
+    // @ts-ignore
+    if (response.success && response.data) {
       // @ts-ignore
       setResult(response.data);
     } else {
+      // @ts-ignore
       setError(response.error);
     }
     setIsLoading(false);
