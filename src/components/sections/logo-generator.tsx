@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -25,7 +26,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Wand2, Sparkles, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getLogoSuggestion } from "@/app/actions/logo.actions";
+import { getLogoSuggestion } from "@/app/actions";
 
 const formSchema = z.object({
   prompt: z
