@@ -22,7 +22,7 @@ import {
   deleteFanComment,
   approveFanComment,
   type FanComment,
-} from "@/app/actions/fan-comments.actions";
+} from "@/app/actions";
 import { Loader2, MessageSquare, Send, Trash2, CheckCircle, Clock } from "lucide-react";
 import {
     AlertDialog,
