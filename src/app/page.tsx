@@ -1,34 +1,21 @@
 
 "use client";
 
-import React, { Suspense } from 'react';
+import React from 'react';
 import Link from "next/link";
-import dynamic from 'next/dynamic';
 import { Hero } from "@/components/sections/hero";
 import { BookingInfo } from "@/components/sections/booking-info";
 import { PaymentInfo } from "@/components/sections/payment-info";
 import { SocialLinks } from "@/components/sections/social-links";
 import { Separator } from "@/components/ui/separator";
-import { Loader2 } from 'lucide-react';
-
-const Spinner = () => (
-  <div className="flex justify-center items-center w-full h-64">
-    <Loader2 className="h-12 w-12 animate-spin text-primary" />
-  </div>
-);
-
-// Lazy load components that are below the fold using Next.js dynamic import
-const TourDates = dynamic(() => import('@/components/sections/tour-dates').then(module => module.TourDates), { loading: () => <Spinner /> });
-const Music = dynamic(() => import('@/components/sections/music').then(module => module.Music), { loading: () => <Spinner /> });
-const BandGallery = dynamic(() => import('@/components/sections/band-gallery').then(module => module.BandGallery), { loading: () => <Spinner /> });
-const BandBio = dynamic(() => import('@/components/sections/band-bio').then(module => module.BandBio), { loading: () => <Spinner /> });
-const FanGallery = dynamic(() => import('@/components/sections/fan-gallery').then(module => module.FanGallery), { loading: () => <Spinner /> });
-const FanComments = dynamic(() => import('@/components/sections/fan-comments').then(module => module.FanComments), { loading: () => <Spinner /> });
-const LogoGenerator = dynamic(() => import('@/components/sections/logo-generator').then(module => module.LogoGenerator), { loading: () => <Spinner /> });
-const PressKit = dynamic(() => import('@/components/sections/press-kit').then(module => module.PressKit), { 
-    ssr: false,
-    loading: () => <Spinner />,
-});
+import { TourDates } from '@/components/sections/tour-dates';
+import { Music } from '@/components/sections/music';
+import { BandGallery } from '@/components/sections/band-gallery';
+import { BandBio } from '@/components/sections/band-bio';
+import { FanGallery } from '@/components/sections/fan-gallery';
+import { FanComments } from '@/components/sections/fan-comments';
+import { LogoGenerator } from '@/components/sections/logo-generator';
+import { PressKit } from '@/components/sections/press-kit';
 
 export default function Home() {
   return (
@@ -47,54 +34,38 @@ export default function Home() {
 
         <Separator className="my-8" />
         
-        <Suspense fallback={<Spinner />}>
-          <TourDates />
-        </Suspense>
+        <TourDates />
         
         <Separator className="my-8" />
 
-        <Suspense fallback={<Spinner />}>
-          <Music />
-        </Suspense>
+        <Music />
         
         <Separator className="my-8" />
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
           <div className="xl:col-span-2">
-            <Suspense fallback={<Spinner />}>
-              <BandGallery readOnly={true} />
-            </Suspense>
+            <BandGallery readOnly={true} />
           </div>
           <div className="xl:col-span-1">
-            <Suspense fallback={<Spinner />}>
-              <BandBio />
-            </Suspense>
+            <BandBio />
           </div>
         </div>
 
         <Separator className="my-8" />
 
-        <Suspense fallback={<Spinner />}>
-          <FanGallery />
-        </Suspense>
+        <FanGallery />
         
         <Separator className="my-8" />
 
-        <Suspense fallback={<Spinner />}>
-          <FanComments readOnly={true} />
-        </Suspense>
+        <FanComments readOnly={true} />
         
         <Separator className="my-8" />
 
-        <Suspense fallback={<Spinner />}>
-          <LogoGenerator />
-        </Suspense>
+        <LogoGenerator />
         
         <Separator className="my-8" />
         
-        <Suspense fallback={<Spinner />}>
-          <PressKit />
-        </Suspense>
+        <PressKit />
 
       </div>
       <footer className="w-full bg-primary/90 backdrop-blur-sm text-primary-foreground text-center p-4">
