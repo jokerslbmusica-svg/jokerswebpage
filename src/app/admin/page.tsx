@@ -1,4 +1,3 @@
-
 // This is a placeholder for the admin page.
 // We will add protected content here in the next steps.
 "use client";
@@ -13,10 +12,10 @@ import { HashtagGenerator } from '@/components/sections/hashtag-generator';
 import { Separator } from '@/components/ui/separator';
 import { TourDatesManager } from '@/components/sections/tour-dates-manager';
 import { FanComments } from '@/components/sections/fan-comments';
-import { BioGenerator } from '@/components/sections/bio-generator';
 import { MusicManager } from '@/components/sections/music-manager';
 import { FanGalleryManager } from '@/components/sections/fan-gallery-manager';
 import { SocialPostGenerator } from '@/components/sections/social-post-generator';
+import { BandBio } from '@/components/sections/band-bio';
 
 export const dynamic = 'force-dynamic';
 
@@ -63,7 +62,7 @@ export default function AdminPage() {
                 <Separator />
                 <SocialPostGenerator />
                 <Separator />
-                <BioGenerator />
+                <BandBio />
                 <Separator />
                 <FanComments />
             </div>

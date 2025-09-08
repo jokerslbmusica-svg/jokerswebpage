@@ -1,49 +1,23 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, FC } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, MapPin, Clock, Loader2 } from "lucide-react";
+import { Calendar, Loader2, Link as LinkIcon } from "lucide-react";
 import { getTourDates, type TourDate } from "@/app/actions";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
+import { Button } from '../ui/button';
 
-export function TourDates() {
+export const TourDates: FC = () => {
     const [dates, setDates] = useState<TourDate[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         setIsLoading(true);
         getTourDates()
-            .then(tourDates => {
-                // Set all dates first
-                const today = new Date();
-                today.setHours(0, 0, 0, 0); // Set time to the beginning of the day for consistent comparison
-                const upcomingDates = tourDates.filter(d => {
-                    const eventDate = new Date(d.date);
-                    // Adjust for timezone differences by getting time in UTC
-                    const eventDateUTC = new Date(eventDate.getUTCFullYear(), eventDate.getUTCMonth(), eventDate.getUTCDate());
-                    return eventDateUTC >= today;
-                });
-                setDates(upcomingDates);
-            })
+            .then(setDates)
             .catch(err => console.error("Failed to fetch tour dates:", err))
             .finally(() => setIsLoading(false));
     }, []);
-
-    // Helper to format the month
-     const formatMonth = (dateString: string) => {
-        const date = new Date(dateString);
-        const userTimezoneOffset = date.getTimezoneOffset() * 60000;
-        return format(new Date(date.getTime() + userTimezoneOffset), "MMM", { locale: es });
-    };
-
-    // Helper to format the day
-    const formatDay = (dateString: string) => {
-        const date = new Date(dateString);
-        const userTimezoneOffset = date.getTimezoneOffset() * 60000;
-        return format(new Date(date.getTime() + userTimezoneOffset), "dd", { locale: es });
-    };
 
     return (
         <Card className="w-full shadow-lg">
@@ -60,30 +34,16 @@ export function TourDates() {
                         <Loader2 className="h-8 w-8 animate-spin" />
                     </div>
                 ) : dates.length > 0 ? (
-                    <div className="space-y-4">
-                        {dates.map((item) => (
-                            <div key={item.id} className="flex flex-col sm:flex-row gap-4 p-4 rounded-lg bg-secondary/80 hover:bg-secondary transition-all duration-300">
-                                <div className="flex-shrink-0 flex sm:flex-col items-center justify-center text-center bg-primary text-primary-foreground p-3 rounded-md w-full sm:w-24 shadow-lg">
-                                    <span className="text-4xl font-bold">{formatDay(item.date)}</span>
-                                    <span className="font-semibold uppercase text-xl ml-2 sm:ml-0">{formatMonth(item.date)}</span>
-                                </div>
-                                <div className="flex-grow">
-                                    <h3 className="text-xl font-bold text-foreground">{item.eventName}</h3>
-                                    <div className="flex items-center gap-2 text-muted-foreground mt-1">
-                                        <MapPin className="w-4 h-4" />
-                                        {item.venueUrl ? (
-                                            <a href={item.venueUrl} target="_blank" rel="noopener noreferrer" className="hover:text-primary hover:underline">
-                                                {item.venue}, {item.city}
-                                            </a>
-                                        ) : (
-                                            <span>{item.venue}, {item.city}</span>
-                                        )}
-                                    </div>
-                                    <div className="flex items-center gap-2 text-muted-foreground mt-1">
-                                        <Clock className="w-4 h-4" />
-                                        <span>{item.time}</span>
-                                    </div>
-                                </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {dates.map((item: TourDate) => (
+                            <div key={item.id} className="bg-secondary/80 p-4 rounded-lg flex flex-col items-center justify-center text-center">
+                                <p className='mb-4 text-muted-foreground'>Tenemos un evento próximo. Haz clic para ver los detalles:</p>
+                                <Button asChild>
+                                    <a href={item.postUrl} target="_blank" rel="noopener noreferrer">
+                                        <LinkIcon className="mr-2 h-4 w-4" />
+                                        Ver Publicación del Evento
+                                    </a>
+                                </Button>
                             </div>
                         ))}
                     </div>

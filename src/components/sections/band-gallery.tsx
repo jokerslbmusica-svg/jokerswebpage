@@ -22,7 +22,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Upload, Download, Trash2, Loader2, Camera, Youtube, Image as ImageIcon } from "lucide-react";
+import { Upload, Download, Trash2, Loader2, Camera, Youtube, Image as ImageIcon, Link as LinkIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getBandMedia, uploadBandMedia, deleteBandMedia, type MediaItem } from "@/app/actions";
 import { ScrollArea } from "../ui/scroll-area";
@@ -30,7 +30,7 @@ import { Label } from "../ui/label";
 
 
 const imageSchema = z.object({
-  file: z.instanceof(File).refine(file => file.size > 0, "Se requiere un archivo de imagen."),
+  imageUrl: z.string().url("Por favor, introduce una URL de imagen válida."),
 });
 
 const videoSchema = z.object({
@@ -123,9 +123,8 @@ export function BandGallery({ readOnly = false }: BandGalleryProps) {
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const imageForm = useForm<{ file: File }>({ resolver: zodResolver(imageSchema) });
+  const imageForm = useForm<{ imageUrl: string }>({ resolver: zodResolver(imageSchema) });
   const videoForm = useForm<{ videoUrl: string }>({ resolver: zodResolver(videoSchema) });
-  const imageFileRef = useRef<HTMLInputElement>(null);
 
   const fetchMedia = () => {
     setIsLoading(true);
@@ -157,15 +156,12 @@ export function BandGallery({ readOnly = false }: BandGalleryProps) {
       setIsUploading(false);
       imageForm.reset();
       videoForm.reset();
-      if (imageFileRef.current) {
-        imageFileRef.current.value = "";
-      }
     }
   };
 
-  const onImageSubmit = (data: { file: File }) => {
+  const onImageSubmit = (data: { imageUrl: string }) => {
     const formData = new FormData();
-    formData.append("file", data.file);
+    formData.append("imageUrl", data.imageUrl);
     handleUpload(formData);
   };
   
@@ -217,26 +213,25 @@ export function BandGallery({ readOnly = false }: BandGalleryProps) {
           <div className="mt-6 pt-6 border-t border-border">
             <Tabs defaultValue="image" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="image"><ImageIcon className="mr-2"/>Subir Imagen</TabsTrigger>
+                    <TabsTrigger value="image"><ImageIcon className="mr-2"/>Añadir Imagen</TabsTrigger>
                     <TabsTrigger value="video"><Youtube className="mr-2"/>Añadir Video</TabsTrigger>
                 </TabsList>
                 <TabsContent value="image">
                     <form onSubmit={imageForm.handleSubmit(onImageSubmit)} className="mt-4 p-4 border-dashed border-2 border-border rounded-lg flex flex-col sm:flex-row items-center justify-between gap-4">
                         <div className="flex flex-col gap-1 w-full">
-                           <Label htmlFor="image-upload" className="text-muted-foreground">Selecciona una imagen:</Label>
-                            <Input 
-                                id="image-upload" 
-                                type="file" 
-                                accept="image/*"
-                                {...imageForm.register("file")}
-                                ref={imageFileRef}
+                           <Label htmlFor="image-url" className="text-muted-foreground">Pega la URL de la imagen:</Label>
+                            <Input
+                                id="image-url"
+                                type="text"
+                                placeholder="https://ejemplo.com/foto.jpg"
+                                {...imageForm.register("imageUrl")}
                                 disabled={isUploading}
                             />
-                            {imageForm.formState.errors.file && <p className="text-destructive text-sm">{imageForm.formState.errors.file.message}</p>}
+                            {imageForm.formState.errors.imageUrl && <p className="text-destructive text-sm">{imageForm.formState.errors.imageUrl.message}</p>}
                         </div>
                         <Button type="submit" variant="outline" disabled={isUploading}>
-                            {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                            {isUploading ? "Subiendo..." : "Subir Imagen"}
+                            {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LinkIcon className="mr-2 h-4 w-4" />}
+                            {isUploading ? "Añadiendo..." : "Añadir Imagen"}
                         </Button>
                     </form>
                 </TabsContent>
@@ -254,7 +249,7 @@ export function BandGallery({ readOnly = false }: BandGalleryProps) {
                              {videoForm.formState.errors.videoUrl && <p className="text-destructive text-sm">{videoForm.formState.errors.videoUrl.message}</p>}
                         </div>
                          <Button type="submit" variant="outline" disabled={isUploading}>
-                            {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+                            {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LinkIcon className="mr-2 h-4 w-4" />}
                             {isUploading ? "Añadiendo..." : "Añadir Video"}
                         </Button>
                     </form>
@@ -266,3 +261,4 @@ export function BandGallery({ readOnly = false }: BandGalleryProps) {
     </Card>
   );
 }
+

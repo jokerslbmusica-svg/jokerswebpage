@@ -14,7 +14,6 @@ import { BandGallery } from '@/components/sections/band-gallery';
 import { BandBio } from '@/components/sections/band-bio';
 import { FanGallery } from '@/components/sections/fan-gallery';
 import { FanComments } from '@/components/sections/fan-comments';
-import { LogoGenerator } from '@/components/sections/logo-generator';
 import { PressKit } from '@/components/sections/press-kit';
 
 export default function Home() {
@@ -58,10 +57,6 @@ export default function Home() {
         <Separator className="my-8" />
 
         <FanComments readOnly={true} />
-        
-        <Separator className="my-8" />
-
-        <LogoGenerator />
         
         <Separator className="my-8" />
         

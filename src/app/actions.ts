@@ -1,8 +1,10 @@
+
 // Server-side code
 "use server";
 
 import { revalidatePath } from "next/cache";
 import admin from 'firebase-admin';
+
 
 // ====================================================================
 // Firebase Admin Initialization
@@ -26,12 +28,7 @@ const adminStorage = admin.storage();
 // ====================================================================
 export interface TourDate {
     id: string;
-    eventName: string;
-    venue: string;
-    city: string;
-    date: string;
-    time: string;
-    venueUrl?: string;
+    postUrl: string;
 }
 
 export interface Song {
@@ -56,7 +53,7 @@ export interface MediaItem {
     id: string;
     name: string;
     url: string;
-    type: 'image' | 'video';
+    type: 'image' | 'video' | 'facebook';
 }
 
 
@@ -73,20 +70,9 @@ const TOUR_DATES_COLLECTION = "tour-dates";
 const MUSIC_STORAGE_PATH = "music";
 
 
-// ====================================================================
+// =================================_==================================
 // Helper Functions
 // ====================================================================
-
-/**
- * Converts a File object to a Base64 encoded data URI.
- * @param file - The file to convert.
- * @returns A promise that resolves to the data URI string.
- */
-async function fileToBase64(file: File): Promise<string> {
-    const buffer = await file.arrayBuffer();
-    const base64 = Buffer.from(buffer).toString('base64');
-    return `data:${file.type};base64,${base64}`;
-}
 
 /**
  * Extracts a YouTube video ID from various URL formats.
@@ -130,22 +116,18 @@ async function uploadFileToStorage(file: File, path: string) {
 // ====================================================================
 
 export async function uploadBandMedia(formData: FormData): Promise<MediaItem> {
-  const file = formData.get("file") as File | null;
+  const imageUrl = formData.get("imageUrl") as string | null;
   const videoUrl = formData.get("videoUrl") as string | null;
 
-  if (file && file.size > 0) {
-    if (!file.type.startsWith('image/')) {
-        throw new Error("Only image files are allowed.");
-    }
-    const dataUrl = await fileToBase64(file);
+  if (imageUrl) {
     const docRef = await adminDb.collection(BAND_GALLERY_COLLECTION).add({
-        name: file.name,
-        url: dataUrl,
+        name: 'Band Image',
+        url: imageUrl,
         type: 'image',
         createdAt: new Date(),
     });
     revalidatePath("/");
-    return { id: docRef.id, name: file.name, url: dataUrl, type: 'image' as const };
+    return { id: docRef.id, name: 'Band Image', url: imageUrl, type: 'image' as const };
   } else if (videoUrl) {
     const videoId = getYouTubeID(videoUrl);
     if (!videoId) {
@@ -161,7 +143,7 @@ export async function uploadBandMedia(formData: FormData): Promise<MediaItem> {
     revalidatePath("/");
     return { id: docRef.id, name: 'YouTube Video', url: embedUrl, type: 'video' as const };
   } else {
-    throw new Error("No file or video URL provided.");
+    throw new Error("No image or video URL provided.");
   }
 }
 
@@ -274,23 +256,21 @@ export async function approveFanComment(commentId: string): Promise<void> {
 // Fan Gallery Actions
 // ====================================================================
 
-export async function uploadFanMedia(formData: FormData): Promise<MediaItem> {
-  const file = formData.get("file") as File;
-  if (!file) throw new Error("No file provided.");
-  if (!file.type.startsWith('image/')) throw new Error("Only image files are allowed.");
-  
-  const dataUrl = await fileToBase64(file);
+export async function addFanMedia(formData: FormData): Promise<MediaItem> {
+  const url = formData.get("url") as string;
+  if (!url) throw new Error("No URL provided.");
+
   const docRef = await adminDb.collection(FAN_GALLERY_COLLECTION).add({
-    name: file.name,
-    url: dataUrl,
-    type: 'image',
+    name: "Fan Image",
+    url: url,
+    type: 'image', // Saving as 'image' type
     createdAt: new Date(),
   });
 
   revalidatePath("/");
   revalidatePath("/admin");
 
-  return { id: docRef.id, name: file.name, url: dataUrl, type: 'image' as const };
+  return { id: docRef.id, name: "Fan Image", url: url, type: 'image' as const };
 }
 
 export async function getFanMedia(): Promise<MediaItem[]> {
@@ -384,15 +364,17 @@ export async function deleteSong(song: Song): Promise<void> {
 // Tour Dates Actions
 // ====================================================================
 
-export async function addTourDate(dateData: Omit<TourDate, 'id'>): Promise<void> {
-    await adminDb.collection(TOUR_DATES_COLLECTION).add({ ...dateData, createdAt: new Date() });
+export async function addTourDate(formData: FormData): Promise<void> {
+    const postUrl = formData.get("postUrl") as string;
+    if (!postUrl) throw new Error("Post URL is required.");
+    await adminDb.collection(TOUR_DATES_COLLECTION).add({ postUrl, createdAt: new Date() });
     revalidatePath("/");
     revalidatePath("/admin");
 }
 
 export async function getTourDates(): Promise<TourDate[]> {
     try {
-        const snapshot = await adminDb.collection(TOUR_DATES_COLLECTION).orderBy("date", "asc").get();
+        const snapshot = await adminDb.collection(TOUR_DATES_COLLECTION).orderBy("createdAt", "desc").get();
         if (snapshot.empty) return [];
         return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as TourDate[];
     } catch (error: any) {
@@ -417,11 +399,6 @@ export async function deleteTourDate(dateId: string): Promise<void> {
 // ====================================================================
 
 export async function getHashtagSuggestions(values: { contentDescription: string, mediaType: 'photo' | 'video', bandName: string }) {
-    console.warn("Genkit dependencies are not installed. Skipping AI generation.");
-    return { success: false, error: "La función de IA no está disponible en este momento." };
-}
-
-export async function getLogoSuggestion(input: any) {
     console.warn("Genkit dependencies are not installed. Skipping AI generation.");
     return { success: false, error: "La función de IA no está disponible en este momento." };
 }
