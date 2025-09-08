@@ -2,7 +2,7 @@
 {
   "name": "rocklink-app",
   "version": "0.1.0",
-  "description": "RockLink App Project ",
+  "description": "RockLink App Project",
   "private": true,
   "engines": {
     "node": ">=20.0.0"
