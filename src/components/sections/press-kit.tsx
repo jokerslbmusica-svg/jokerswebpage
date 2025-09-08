@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState } from "react";
 import { jsPDF } from 'jspdf';
 import JSZip from 'jszip';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Download, FileText, Image as ImageIcon, Briefcase, Mail, Phone, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getBandBio, getBandMedia } from '@/app/actions';
+import { BookingInfo } from "./booking-info";
 
 // Helper function to trigger file download in the browser
 const downloadFile = (blob: Blob, filename: string) => {
@@ -95,17 +96,15 @@ export function PressKit() {
             
             // Note: This fetches images via proxy which might be slow or fail for large galleries.
             // A more robust solution for large galleries would direct Storage URLs.
-            const imagePromises = imageItems.map(async (image) => {
+            const imagePromises = imageItems.map(async (image, index) => {
                 try {
-                    // Fetch the image data from its URL. This might be a data URL or a gs:// URL.
-                    // We need to handle both cases if necessary, but here we assume base64 data URLs.
-                    if (!image.url.startsWith('data:image')) {
-                         console.warn(`Skipping non-data-URL image: ${image.id}`);
-                         return;
-                    }
-                    const base64Data = image.url.split(',')[1];
-                    const fileName = `JokersLiveBand_${image.id}.jpg`;
-                    zip.file(fileName, base64Data, { base64: true });
+                    // Fetch the image data from its public URL.
+                    const response = await fetch(image.url);
+                    if (!response.ok) throw new Error(`Failed to fetch image: ${response.statusText}`);
+                    const blob = await response.blob();
+                    const fileExtension = image.url.split('.').pop()?.split('?')[0] || 'jpg';
+                    const fileName = `JokersLiveBand_${index + 1}.${fileExtension}`;
+                    zip.file(fileName, blob);
                 } catch (fetchError) {
                     console.error(`Failed to process image ${image.id}:`, fetchError);
                     // Optionally, you can decide to not fail the whole zip process for one failed image.
@@ -134,7 +133,6 @@ export function PressKit() {
         }
     };
 
-
     return (
         <Card className="w-full shadow-lg bg-secondary text-secondary-foreground">
             <CardHeader>
@@ -146,7 +144,7 @@ export function PressKit() {
                     Recursos y contacto para medios, promotores y colaboradores.
                 </CardDescription>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <CardContent className="space-y-8">
                 <div className="space-y-4">
                     <h3 className="font-semibold text-lg">Recursos Descargables</h3>
                     <div className="flex flex-col sm:flex-row gap-4">
@@ -163,16 +161,19 @@ export function PressKit() {
                         Descarga nuestra biografía oficial y un paquete con fotos de alta resolución para uso en medios.
                     </p>
                 </div>
-                 <div className="space-y-4">
-                    <h3 className="font-semibold text-lg">Contacto de Prensa</h3>
+                 <div className="space-y-4 pt-6 border-t border-border">
+                    <h3 className="font-semibold text-lg">Contacto Directo</h3>
                      <div className="flex items-center gap-3">
                         <Mail className="w-5 h-5 text-primary" />
                         <a href="mailto:jokerslbmusica@gmail.com" className="hover:underline">jokerslbmusica@gmail.com</a>
                     </div>
                      <div className="flex items-center gap-3">
                         <Phone className="w-5 h-5 text-primary" />
-                        <span>+52 33 1546 3695</span>
+                        <a href="tel:+523315463695" className="hover:underline">+52 33 1546 3695</a>
                     </div>
+                </div>
+                <div className="pt-6 border-t border-border">
+                    <BookingInfo />
                 </div>
             </CardContent>
         </Card>

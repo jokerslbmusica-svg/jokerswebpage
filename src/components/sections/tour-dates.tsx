@@ -5,6 +5,7 @@ import { useState, useEffect, FC } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, Loader2, Link as LinkIcon } from "lucide-react";
 import { getTourDates, type TourDate } from "@/app/actions";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from '../ui/button';
 
 export const TourDates: FC = () => {
@@ -30,8 +31,16 @@ export const TourDates: FC = () => {
             </CardHeader>
             <CardContent>
                  {isLoading ? (
-                    <div className="flex justify-center items-center h-40">
-                        <Loader2 className="h-8 w-8 animate-spin" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {Array.from({ length: 3 }).map((_, index) => (
+                            <div key={index} className="bg-secondary/80 p-4 rounded-lg flex flex-col items-center justify-center text-center space-y-4 h-[148px]">
+                                <div className="space-y-2 w-full">
+                                    <Skeleton className="h-4 w-full" />
+                                    <Skeleton className="h-4 w-3/4 mx-auto" />
+                                </div>
+                                <Skeleton className="h-10 w-48" />
+                            </div>
+                        ))}
                     </div>
                 ) : dates.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

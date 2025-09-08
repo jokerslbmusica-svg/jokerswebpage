@@ -1,54 +1,58 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from '../ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { CalendarCheck } from 'lucide-react';
+import { CalendarCheck, Loader2, Send } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
+import { sendBookingInquiry } from "@/app/actions";
 
-const WhatsAppIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg
-    {...props}
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
-  </svg>
-);
+const bookingSchema = z.object({
+  name: z.string().min(2, "El nombre es requerido."),
+  email: z.string().email("Por favor, introduce un email válido."),
+  phone: z.string().optional(),
+  eventType: z.string().min(3, "El tipo de evento es requerido."),
+  eventDate: z.string().min(1, "La fecha del evento es requerida."),
+  message: z.string().min(10, "Por favor, proporciona más detalles en tu mensaje.").max(1000),
+});
 
-const eventTypes = ["Boda", "Fiesta Privada", "Evento Corporativo", "Bar o Club", "Otro"];
+type BookingFormValues = z.infer<typeof bookingSchema>;
 
 export function BookingInfo() {
-  const [eventType, setEventType] = useState('');
-  const [eventDate, setEventDate] = useState('');
-  const [eventVenue, setEventVenue] = useState('');
-  const [eventNotes, setEventNotes] = useState('');
+  const [isBooking, setIsBooking] = useState(false);
+  const { toast } = useToast();
+  const form = useForm<BookingFormValues>({
+    resolver: zodResolver(bookingSchema),
+    defaultValues: {
+      name: "", email: "", phone: "", eventType: "", eventDate: "", message: ""
+    }
+  });
 
-  const handleSendWhatsApp = () => {
-    const bandPhoneNumber = "523315463695"; // Número de la banda
+  const onBookingSubmit = async (data: BookingFormValues) => {
+    setIsBooking(true);
+    const result = await sendBookingInquiry(data);
 
-    let message = "¡Hola, Jokers! Quisiera cotizar un evento.\n\n";
-    if (eventType) message += `*Tipo de evento:* ${eventType}\n`;
-    if (eventDate) message += `*Fecha:* ${eventDate}\n`;
-    if (eventVenue) message += `*Lugar:* ${eventVenue}\n`;
-    if (eventNotes) message += `*Notas adicionales:* ${eventNotes}\n`;
+    if (result.success) {
+      toast({
+        title: "¡Solicitud Enviada!",
+        description: "Gracias por tu interés. Nos pondremos en contacto contigo pronto.",
+      });
+      form.reset();
+    } else {
+      toast({ variant: "destructive", title: "Error", description: result.error });
+    }
 
-    message += "\n¡Quedo a la espera de su respuesta!";
-    
-    const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/${bandPhoneNumber}?text=${encodedMessage}`;
-    
-    window.open(whatsappUrl, '_blank');
+    setIsBooking(false);
   };
+
+  const today = new Date().toISOString().split('T')[0];
 
   return (
     <Card className="w-full shadow-lg">
@@ -58,62 +62,43 @@ export function BookingInfo() {
           Contrata a la Banda
         </CardTitle>
         <CardDescription>
-          Rellena los detalles de tu evento y te enviaremos una cotización por WhatsApp.
+          Rellena los detalles de tu evento para recibir una cotización.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="event-type">Tipo de Evento</Label>
-             <Select onValueChange={setEventType} value={eventType}>
-                <SelectTrigger id="event-type">
-                    <SelectValue placeholder="Selecciona un tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                    {eventTypes.map(type => (
-                        <SelectItem key={type} value={type}>{type}</SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="event-date">Fecha del Evento</Label>
-            <Input 
-              id="event-date" 
-              type="date" 
-              value={eventDate}
-              onChange={(e) => setEventDate(e.target.value)}
-            />
-          </div>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="event-venue">Lugar del Evento (Ej: Terraza Andares, Guadalajara)</Label>
-          <Input 
-            id="event-venue" 
-            type="text" 
-            placeholder="Nombre del lugar y ciudad"
-            value={eventVenue}
-            onChange={(e) => setEventVenue(e.target.value)}
-          />
-        </div>
-        <div className="space-y-2">
-            <Label htmlFor="event-notes">Notas Adicionales (Opcional)</Label>
-            <Textarea 
-                id="event-notes"
-                placeholder="¿Hay algo más que debamos saber? Horarios, equipo necesario, etc."
-                value={eventNotes}
-                onChange={(e) => setEventNotes(e.target.value)}
-            />
-        </div>
-        <Button
-            size="lg"
-            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2"
-            onClick={handleSendWhatsApp}
-            disabled={!eventType || !eventDate || !eventVenue}
-        >
-          <WhatsAppIcon className="w-6 h-6"/>
-          Solicitar Cotización por WhatsApp
-        </Button>
+      <CardContent>
+        <form onSubmit={form.handleSubmit(onBookingSubmit)} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label htmlFor="name">Nombre Completo</Label>
+                    <Input id="name" {...form.register("name")} />
+                    {form.formState.errors.name && <p className="text-destructive text-sm">{form.formState.errors.name.message}</p>}
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="email">Email de Contacto</Label>
+                    <Input id="email" type="email" {...form.register("email")} />
+                    {form.formState.errors.email && <p className="text-destructive text-sm">{form.formState.errors.email.message}</p>}
+                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="eventType">Tipo de Evento (Ej. Boda, Bar, Festival)</Label>
+                    <Input id="eventType" {...form.register("eventType")} />
+                    {form.formState.errors.eventType && <p className="text-destructive text-sm">{form.formState.errors.eventType.message}</p>}
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="eventDate">Fecha del Evento</Label>
+                    <Input id="eventDate" type="date" min={today} {...form.register("eventDate")} />
+                    {form.formState.errors.eventDate && <p className="text-destructive text-sm">{form.formState.errors.eventDate.message}</p>}
+                </div>
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="message">Mensaje (Lugar, horario, detalles adicionales)</Label>
+                <Textarea id="message" {...form.register("message")} />
+                {form.formState.errors.message && <p className="text-destructive text-sm">{form.formState.errors.message.message}</p>}
+            </div>
+            <Button type="submit" disabled={isBooking} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
+                {isBooking ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                {isBooking ? "Enviando..." : "Enviar Solicitud"}
+            </Button>
+        </form>
       </CardContent>
     </Card>
   );

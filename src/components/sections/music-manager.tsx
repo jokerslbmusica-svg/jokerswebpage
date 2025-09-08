@@ -1,7 +1,14 @@
 
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useTransition } from "react";
+import {
+  DndContext,
+  closestCenter,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,9 +28,10 @@ import {
   addSong,
   getSongs,
   deleteSong,
+  updateSongOrder,
   type Song,
 } from "@/app/actions";
-import { Loader2, Music, PlusCircle, Trash2 } from "lucide-react";
+import { Loader2, Music, PlusCircle, Trash2, GripVertical } from "lucide-react";
 import {
     AlertDialog,
     AlertDialogAction,
@@ -62,11 +70,53 @@ const songSchema = z.object({
 
 type SongFormValues = z.infer<typeof songSchema>;
 
+function SortableSongItem({ song, isDeleting, handleDelete }: { song: Song, isDeleting: string | null, handleDelete: (song: Song) => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: song.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center justify-between gap-4 p-3 bg-secondary/50 rounded-md">
+        <div className="flex items-center gap-4 flex-grow">
+            <div {...attributes} {...listeners} className="cursor-grab touch-none p-2">
+                <GripVertical className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <Image src={song.coverUrl} alt={`Cover for ${song.title}`} width={64} height={64} className="rounded-md object-cover h-16 w-16" />
+            <div>
+                <p className="font-bold">{song.title}</p>
+                <p className="text-sm text-muted-foreground">{song.artist}</p>
+            </div>
+        </div>
+        <AlertDialog>
+            <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="icon" disabled={isDeleting === song.id}>
+                    {isDeleting === song.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                <AlertDialogDescription>Esta acción no se puede deshacer. Esto eliminará permanentemente la canción y sus archivos.</AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={() => handleDelete(song)}>Confirmar</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+    </div>
+  );
+}
+
 export function MusicManager() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [isReordering, startReorderTransition] = useTransition();
   const { toast } = useToast();
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -132,6 +182,26 @@ export function MusicManager() {
     }
   };
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setSongs((currentSongs) => {
+        const oldIndex = currentSongs.findIndex((s) => s.id === active.id);
+        const newIndex = currentSongs.findIndex((s) => s.id === over.id);
+        const newOrderSongs = arrayMove(currentSongs, oldIndex, newIndex);
+
+        // After local state update, call server action
+        startReorderTransition(async () => {
+            const songsWithNewOrder = newOrderSongs.map((song, index) => ({ id: song.id, order: index }));
+            const result = await updateSongOrder(songsWithNewOrder);
+            if (!result.success) toast({ variant: "destructive", title: "Error", description: result.error });
+        });
+        return newOrderSongs;
+      });
+    }
+  };
+
   return (
     <Card className="w-full shadow-lg">
       <CardHeader>
@@ -181,38 +251,16 @@ export function MusicManager() {
                 <Loader2 className="h-8 w-8 animate-spin" />
             </div>
         ) : (
-        <div className="space-y-4">
-          {songs.length > 0 ? songs.map(song => (
-            <div key={song.id} className="flex items-center justify-between gap-4 p-3 bg-secondary/50 rounded-md">
-                <div className="flex items-center gap-4">
-                    <Image src={song.coverUrl} alt={`Cover for ${song.title}`} width={64} height={64} className="rounded-md object-cover h-16 w-16" />
-                    <div>
-                        <p className="font-bold">{song.title}</p>
-                        <p className="text-sm text-muted-foreground">{song.artist}</p>
-                    </div>
+            <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <div className="space-y-4">
+                    {isReordering && <div className="text-sm text-muted-foreground flex items-center"><Loader2 className="mr-2 h-4 w-4 animate-spin" />Guardando nuevo orden...</div>}
+                    <SortableContext items={songs} strategy={verticalListSortingStrategy}>
+                        {songs.length > 0 ? songs.map(song => (
+                            <SortableSongItem key={song.id} song={song} isDeleting={isDeleting} handleDelete={handleDelete} />
+                        )) : <p className="text-muted-foreground text-center">No hay canciones subidas.</p>}
+                    </SortableContext>
                 </div>
-                <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                        <Button variant="destructive" size="icon" disabled={isDeleting === song.id}>
-                            {isDeleting === song.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                        </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                        <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Esta acción no se puede deshacer. Esto eliminará permanentemente la canción y sus archivos.
-                        </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleDelete(song)}>Confirmar</AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-            </div>
-          )) : <p className="text-muted-foreground text-center">No hay canciones subidas.</p>}
-        </div>
+            </DndContext>
         )}
       </CardContent>
     </Card>

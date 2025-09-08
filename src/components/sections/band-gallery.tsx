@@ -6,6 +6,8 @@ import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import Lightbox from "yet-another-react-lightbox";
+import "yet-another-react-lightbox/styles.css";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -41,7 +43,7 @@ interface BandGalleryProps {
   readOnly?: boolean;
 }
 
-const MediaItemComponent = ({ item, readOnly, isDeleting, handleDelete }: { item: MediaItem, readOnly: boolean, isDeleting: string | null, handleDelete: (id: string) => void }) => {
+const MediaItemComponent = ({ item, readOnly, isDeleting, handleDelete, onImageClick }: { item: MediaItem, readOnly: boolean, isDeleting: string | null, handleDelete: (id: string) => void, onImageClick?: () => void }) => {
     if (item.type === 'video') {
         return (
             <div className="relative group overflow-hidden rounded-lg shadow-md aspect-video bg-black">
@@ -79,14 +81,17 @@ const MediaItemComponent = ({ item, readOnly, isDeleting, handleDelete }: { item
     }
     // Default to image
     return (
-        <div className="relative group overflow-hidden rounded-lg shadow-md aspect-video">
-            <Image
-                src={item.url}
-                alt={item.name}
-                fill
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300"
-            />
+        <div className="relative group overflow-hidden rounded-lg shadow-md aspect-video cursor-pointer">
+            <button onClick={onImageClick} className="w-full h-full" disabled={!onImageClick}>
+                <Image
+                    src={item.url}
+                    alt={item.name}
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300"
+                />
+                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true" />
+            </button>
             {!readOnly && (
                 <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <Button variant="outline" size="icon" asChild>
@@ -121,6 +126,8 @@ export function BandGallery({ readOnly = false }: BandGalleryProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
   const { toast } = useToast();
 
   const imageForm = useForm<{ imageUrl: string }>({ resolver: zodResolver(imageSchema) });
@@ -185,6 +192,8 @@ export function BandGallery({ readOnly = false }: BandGalleryProps) {
     }
   };
 
+  const imageItems = mediaItems.filter(item => item.type === 'image');
+
 
   return (
     <Card className="w-full shadow-lg h-full flex flex-col">
@@ -201,12 +210,28 @@ export function BandGallery({ readOnly = false }: BandGalleryProps) {
             <div className="flex justify-center items-center h-full min-h-[300px]">
                 <Loader2 className="h-8 w-8 animate-spin" />
             </div>
-        ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {mediaItems.map((item) => (
-                    <MediaItemComponent key={item.id} item={item} readOnly={readOnly} isDeleting={isDeleting} handleDelete={handleDelete} />
-                ))}
-            </div>
+        ) : mediaItems.length > 0 ? (
+            <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {mediaItems.map((item) => (
+                        <MediaItemComponent 
+                            key={item.id} 
+                            item={item} 
+                            readOnly={readOnly} 
+                            isDeleting={isDeleting} 
+                            handleDelete={handleDelete}
+                            onImageClick={readOnly && item.type === 'image' ? () => {
+                                const imageIndex = imageItems.findIndex(img => img.id === item.id);
+                                if (imageIndex !== -1) {
+                                    setLightboxIndex(imageIndex);
+                                    setLightboxOpen(true);
+                                }
+                            } : undefined}
+                        />
+                    ))}
+                </div>
+                <Lightbox open={lightboxOpen} close={() => setLightboxOpen(false)} slides={imageItems.map(item => ({ src: item.url }))} index={lightboxIndex} />
+            </>
         )}
         </ScrollArea>
         {!readOnly && (
@@ -261,4 +286,3 @@ export function BandGallery({ readOnly = false }: BandGalleryProps) {
     </Card>
   );
 }
-

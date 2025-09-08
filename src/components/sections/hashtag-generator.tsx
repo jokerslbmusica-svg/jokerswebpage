@@ -28,7 +28,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Wand2, Copy } from "lucide-react";
+import { Loader2, Wand2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { CopyButton } from "@/components/copy-button";
 
@@ -76,25 +76,6 @@ export function HashtagGenerator() {
     setIsLoading(false);
   }
 
-  const handleCopyHashtags = () => {
-    if (result && result.hashtags.length > 0) {
-      const hashtagString = result.hashtags.join(' ');
-      navigator.clipboard.writeText(hashtagString).then(() => {
-        toast({
-          title: "¡Copiados!",
-          description: "Todos los hashtags han sido copiados a tu portapapeles.",
-        });
-      }).catch(err => {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "No se pudieron copiar los hashtags.",
-        });
-        console.error('Failed to copy hashtags: ', err);
-      });
-    }
-  };
-
   return (
     <Card className="w-full shadow-lg">
       <CardHeader>
@@ -112,11 +93,11 @@ export function HashtagGenerator() {
             <FormField
               control={form.control}
               name="bandName"
-              render={({ field }) => (
-                <FormItem>
+              render={({ field }) => ( // Hidden field as it has a default value
+                <FormItem className="hidden">
                   <FormLabel>Nombre de la Banda</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ej: The Rolling Stones" {...field} />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -184,10 +165,7 @@ export function HashtagGenerator() {
                 <div className="w-full pt-4">
                   <div className="flex justify-between items-center mb-2">
                     <h4 className="font-semibold">Hashtags Sugeridos:</h4>
-                    <Button variant="ghost" size="sm" onClick={handleCopyHashtags}>
-                      <Copy className="mr-2 h-4 w-4" />
-                      Copiar Hashtags
-                    </Button>
+                    <CopyButton textToCopy={result.hashtags.join(' ')} />
                   </div>
                     <div className="flex flex-wrap gap-2">
                         {result.hashtags.map((tag, i) => (

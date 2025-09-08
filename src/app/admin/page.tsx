@@ -62,9 +62,9 @@ export default function AdminPage() {
                 <Separator />
                 <SocialPostGenerator />
                 <Separator />
-                <BandBio />
+                <BandBio readOnly={false} />
                 <Separator />
-                <FanComments />
+                <FanComments readOnly={false} />
             </div>
         </div>
     </main>

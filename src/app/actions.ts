@@ -1,6 +1,9 @@
 
 // Server-side code
 "use server";
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
+import * as z from "zod";
+import nodemailer from 'nodemailer';
 
 import { revalidatePath } from "next/cache";
 import admin from 'firebase-admin';
@@ -39,6 +42,7 @@ export interface Song {
     coverUrl: string;
     audioPath: string;
     coverPath: string;
+    order: number;
 }
 
 export interface FanComment {
@@ -110,6 +114,46 @@ async function uploadFileToStorage(file: File, path: string) {
     return { downloadUrl, path: filePath };
 }
 
+/**
+ * A generic function to fetch items from a Firestore collection.
+ * @param collectionName - The name of the collection.
+ * @param orderByField - The field to order the results by.
+ * @param orderByDirection - The direction to order the results.
+ * @param transform - An optional function to transform each document.
+ * @returns A promise that resolves to an array of items.
+ */
+async function getCollectionItems<T>(
+    collectionName: string,
+    orderByField: string = "createdAt",
+    orderByDirection: "desc" | "asc" = "desc",
+    transform?: (doc: admin.firestore.DocumentSnapshot) => T
+): Promise<T[]> {
+    try {
+        const snapshot = await adminDb.collection(collectionName).orderBy(orderByField, orderByDirection).get();
+        if (snapshot.empty) return [];
+        return snapshot.docs.map(transform ? transform : (doc) => ({ id: doc.id, ...doc.data() } as T));
+    } catch (error: any) {
+        if (error.code === 5) { // NOT_FOUND error, collection likely doesn't exist
+            console.log(`Collection '${collectionName}' not found, returning empty array.`);
+            return [];
+        }
+        throw error;
+    }
+}
+
+/**
+ * A generic function to delete an item from a Firestore collection and revalidate paths.
+ * @param collectionName - The name of the collection.
+ * @param itemId - The ID of the item to delete.
+ * @param pathsToRevalidate - An array of paths to revalidate. Defaults to ["/", "/admin"].
+ */
+async function deleteCollectionItem(collectionName: string, itemId: string, pathsToRevalidate: string[] = ["/", "/admin"]): Promise<void> {
+    if (!itemId) {
+        throw new Error("Item ID not provided for deletion.");
+    }
+    await adminDb.collection(collectionName).doc(itemId).delete();
+    pathsToRevalidate.forEach(path => revalidatePath(path));
+}
 
 // ====================================================================
 // Band Gallery Actions
@@ -148,26 +192,11 @@ export async function uploadBandMedia(formData: FormData): Promise<MediaItem> {
 }
 
 export async function getBandMedia(): Promise<MediaItem[]> {
-    try {
-        const snapshot = await adminDb.collection(BAND_GALLERY_COLLECTION).orderBy("createdAt", "desc").get();
-        if (snapshot.empty) return [];
-        return snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data()
-        })) as MediaItem[];
-    } catch (error: any) {
-        if (error.code === 5) { // NOT_FOUND error, collection likely doesn't exist
-            console.log("Band gallery collection not found, returning empty array.");
-            return [];
-        }
-        throw error;
-    }
+    return getCollectionItems<MediaItem>(BAND_GALLERY_COLLECTION);
 }
 
 export async function deleteBandMedia(itemId: string): Promise<void> {
-  if (!itemId) throw new Error("Item ID not provided.");
-  await adminDb.collection(BAND_GALLERY_COLLECTION).doc(itemId).delete();
-  revalidatePath("/");
+  await deleteCollectionItem(BAND_GALLERY_COLLECTION, itemId, ["/"]);
 }
 
 
@@ -214,34 +243,51 @@ export async function addFanComment(commentData: Omit<FanComment, 'id' | 'create
     revalidatePath("/admin");
 }
 
-export async function getFanComments(): Promise<FanComment[]> {
-    try {
-        const snapshot = await adminDb.collection(FAN_COMMENTS_COLLECTION).orderBy("createdAt", "desc").get();
-        if (snapshot.empty) return [];
-        return snapshot.docs.map((doc) => {
-            const data = doc.data();
-            return {
-                id: doc.id,
-                name: data.name,
-                comment: data.comment,
-                status: data.status || 'approved',
-                createdAt: data.createdAt?.toDate().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }) || '',
-            } as FanComment;
-        });
-    } catch (error: any) {
-        if (error.code === 5) { // NOT_FOUND error, collection likely doesn't exist
-            console.log("Fan comments collection not found, returning empty array.");
-            return [];
+export async function getFanComments(options: { limit: number, startAfter?: string, status: 'approved' | 'pending' }): Promise<{ comments: FanComment[], nextCursor?: string, hasMore: boolean }> {
+    // IMPORTANT: This query requires a composite index in Firestore.
+    // If the fan comments are not loading, check your Firebase console or emulator logs
+    // for a link to create the required index. It will look like this:
+    //
+    // Collection: 'fan-comments'
+    // Fields:
+    // 1. status (Ascending)
+    // 2. createdAt (Descending)
+    //
+    const { limit, startAfter, status } = options;
+    let query = adminDb.collection(FAN_COMMENTS_COLLECTION)
+        .where('status', '==', status)
+        .orderBy("createdAt", "desc")
+        .limit(limit + 1); // Fetch one extra to check if there are more
+
+    if (startAfter) {
+        const startAfterDoc = await adminDb.collection(FAN_COMMENTS_COLLECTION).doc(startAfter).get();
+        if (startAfterDoc.exists) {
+            query = query.startAfter(startAfterDoc);
         }
-        throw error;
     }
+
+    const snapshot = await query.get();
+    if (snapshot.empty) return { comments: [], hasMore: false };
+
+    const hasMore = snapshot.docs.length > limit;
+    const comments = snapshot.docs.slice(0, limit).map(doc => {
+         const data = doc.data();
+         return {
+             id: doc.id,
+             name: data.name,
+             comment: data.comment,
+             status: data.status,
+             createdAt: data.createdAt?.toDate().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }) || '',
+         } as FanComment;
+    });
+
+    const nextCursor = hasMore ? comments[comments.length - 1]?.id : undefined;
+
+    return { comments, nextCursor, hasMore };
 }
 
 export async function deleteFanComment(commentId: string): Promise<void> {
-    if (!commentId) throw new Error("Comment ID not provided.");
-    await adminDb.collection(FAN_COMMENTS_COLLECTION).doc(commentId).delete();
-    revalidatePath("/");
-    revalidatePath("/admin");
+    await deleteCollectionItem(FAN_COMMENTS_COLLECTION, commentId);
 }
 
 export async function approveFanComment(commentId: string): Promise<void> {
@@ -251,6 +297,35 @@ export async function approveFanComment(commentId: string): Promise<void> {
     revalidatePath("/admin");
 }
 
+export async function updateFanCommentsStatus(commentIds: string[], status: 'approved' | 'deleted'): Promise<{ success: boolean, error?: string }> {
+    if (!commentIds || commentIds.length === 0) {
+        return { success: false, error: "No se proporcionaron IDs de comentarios." };
+    }
+
+    const batch = adminDb.batch();
+    const collectionRef = adminDb.collection(FAN_COMMENTS_COLLECTION);
+
+    try {
+        if (status === 'approved') {
+            commentIds.forEach(id => {
+                batch.update(collectionRef.doc(id), { status: 'approved' });
+            });
+        } else if (status === 'deleted') {
+            commentIds.forEach(id => {
+                batch.delete(collectionRef.doc(id));
+            });
+        } else {
+            throw new Error("Estado inválido proporcionado.");
+        }
+
+        await batch.commit();
+        revalidatePath("/admin");
+        return { success: true };
+    } catch (error: any) {
+        console.error("Error updating fan comments status:", error);
+        return { success: false, error: "No se pudieron actualizar los comentarios." };
+    }
+}
 
 // ====================================================================
 // Fan Gallery Actions
@@ -274,27 +349,22 @@ export async function addFanMedia(formData: FormData): Promise<MediaItem> {
 }
 
 export async function getFanMedia(): Promise<MediaItem[]> {
-    try {
-        const snapshot = await adminDb.collection(FAN_GALLERY_COLLECTION).orderBy("createdAt", "desc").get();
-        if (snapshot.empty) return [];
-        return snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data()
-        })) as MediaItem[];
-    } catch (error: any) {
-        if (error.code === 5) { // NOT_FOUND error, collection likely doesn't exist
-            console.log("Fan gallery collection not found, returning empty array.");
-            return [];
-        }
-        throw error;
-    }
+    // IMPORTANT: This query requires a composite index in Firestore.
+    // If the fan gallery is not loading, check your Firebase console or emulator logs
+    // for a link to create the required index. It will look like this:
+    //
+    // Collection: 'fan-gallery'
+    // Fields:
+    // 1. type (Ascending)
+    // 2. createdAt (Descending)
+    //
+    const snapshot = await adminDb.collection(FAN_GALLERY_COLLECTION).where('type', '==', 'image').orderBy("createdAt", "desc").get();
+    if (snapshot.empty) return [];
+    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as MediaItem));
 }
 
 export async function deleteFanMedia(itemId: string): Promise<void> {
-  if (!itemId) throw new Error("Item ID not provided.");
-  await adminDb.collection(FAN_GALLERY_COLLECTION).doc(itemId).delete();
-  revalidatePath("/");
-  revalidatePath("/admin");
+  await deleteCollectionItem(FAN_GALLERY_COLLECTION, itemId);
 }
 
 // ====================================================================
@@ -307,12 +377,15 @@ export async function addSong(formData: FormData): Promise<void> {
     const audioFile = formData.get("audioFile") as File;
     const coverFile = formData.get("coverFile") as File;
 
-    if (!title || !artist || !audioFile || !coverFile) throw new Error("Missing required fields.");
-    
+    if (!title || !artist || !audioFile || !coverFile) {
+        throw new Error("Missing required fields.");
+    }
+
     const [audioUpload, coverUpload] = await Promise.all([
         uploadFileToStorage(audioFile, `${MUSIC_STORAGE_PATH}/audio`),
         uploadFileToStorage(coverFile, `${MUSIC_STORAGE_PATH}/covers`),
     ]);
+    const songsCount = (await adminDb.collection(MUSIC_COLLECTION).count().get()).data().count;
 
     await adminDb.collection(MUSIC_COLLECTION).add({
         title,
@@ -321,6 +394,7 @@ export async function addSong(formData: FormData): Promise<void> {
         coverUrl: coverUpload.downloadUrl,
         audioPath: audioUpload.path,
         coverPath: coverUpload.path,
+        order: songsCount, // Set order to the end of the list
         createdAt: new Date(),
     });
 
@@ -329,17 +403,7 @@ export async function addSong(formData: FormData): Promise<void> {
 }
 
 export async function getSongs(): Promise<Song[]> {
-    try {
-        const snapshot = await adminDb.collection(MUSIC_COLLECTION).orderBy("createdAt", "desc").get();
-        if (snapshot.empty) return [];
-        return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Song[];
-    } catch (error: any) {
-        if (error.code === 5) { // NOT_FOUND error, collection likely doesn't exist
-            console.log("Music collection not found, returning empty array.");
-            return [];
-        }
-        throw error;
-    }
+    return getCollectionItems<Song>(MUSIC_COLLECTION, "order", "asc");
 }
 
 export async function deleteSong(song: Song): Promise<void> {
@@ -359,6 +423,26 @@ export async function deleteSong(song: Song): Promise<void> {
     revalidatePath("/admin");
 }
 
+export async function updateSongOrder(songs: { id: string; order: number }[]): Promise<{ success: boolean; error?: string }> {
+    if (!songs || songs.length === 0) {
+        return { success: false, error: "No se proporcionaron canciones para reordenar." };
+    }
+
+    const batch = adminDb.batch();
+    const collectionRef = adminDb.collection(MUSIC_COLLECTION);
+
+    try {
+        songs.forEach(song => {
+            batch.update(collectionRef.doc(song.id), { order: song.order });
+        });
+        await batch.commit();
+        revalidatePath("/");
+        return { success: true };
+    } catch (error: any) {
+        console.error("Error updating song order:", error);
+        return { success: false, error: "No se pudo actualizar el orden de las canciones." };
+    }
+}
 
 // ====================================================================
 // Tour Dates Actions
@@ -373,24 +457,11 @@ export async function addTourDate(formData: FormData): Promise<void> {
 }
 
 export async function getTourDates(): Promise<TourDate[]> {
-    try {
-        const snapshot = await adminDb.collection(TOUR_DATES_COLLECTION).orderBy("createdAt", "desc").get();
-        if (snapshot.empty) return [];
-        return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as TourDate[];
-    } catch (error: any) {
-        if (error.code === 5) { // NOT_FOUND error, collection likely doesn't exist
-            console.log("Tour dates collection not found, returning empty array.");
-            return [];
-        }
-        throw error;
-    }
+    return getCollectionItems<TourDate>(TOUR_DATES_COLLECTION);
 }
 
 export async function deleteTourDate(dateId: string): Promise<void> {
-    if (!dateId) throw new Error("Date ID not provided.");
-    await adminDb.collection(TOUR_DATES_COLLECTION).doc(dateId).delete();
-    revalidatePath("/");
-    revalidatePath("/admin");
+    await deleteCollectionItem(TOUR_DATES_COLLECTION, dateId);
 }
 
 
@@ -399,11 +470,167 @@ export async function deleteTourDate(dateId: string): Promise<void> {
 // ====================================================================
 
 export async function getHashtagSuggestions(values: { contentDescription: string, mediaType: 'photo' | 'video', bandName: string }) {
-    console.warn("Genkit dependencies are not installed. Skipping AI generation.");
+    console.warn("AI functionality is not implemented. Skipping AI generation.");
     return { success: false, error: "La función de IA no está disponible en este momento." };
 }
 
 export async function getSocialPostSuggestion(formData: FormData) {
-    console.warn("Genkit dependencies are not installed. Skipping AI generation.");
-    return { success: false, error: "La función de IA no está disponible en este momento." };
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+        console.error("GEMINI_API_KEY is not set.");
+        return { success: false, error: "La configuración del servicio de IA está incompleta." };
+    }
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+
+    const safetySettings = [
+        { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+        { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+        { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+        { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
+    ];
+
+    try {
+        const topic = formData.get("topic") as string;
+        const platform = formData.get("platform") as string;
+        const bandName = formData.get("bandName") as string;
+        const flyerFile = formData.get("flyer") as File | null;
+
+        let model;
+        let promptParts: (string | { inlineData: { mimeType: string; data: string } })[] = [];
+
+        const basePrompt = `Eres el community manager de una banda de rock llamada "${bandName}". Tu tono es enérgico, directo y emocionante, como una banda de rock.
+Genera un texto para una publicación en "${platform}".
+El tema es: "${topic}".
+
+Reglas:
+- Incluye emojis relevantes para el rock y la música 🤘🎸🔥.
+- Usa hashtags relevantes al final.
+- Si la publicación es sobre un evento, asegúrate de que la fecha, hora y lugar sean claros.
+- El texto debe ser atractivo y animar a los fans a interactuar.`;
+
+        if (flyerFile && flyerFile.size > 0) {
+            model = genAI.getGenerativeModel({ model: "gemini-pro-vision", safetySettings });
+
+            const imageBuffer = Buffer.from(await flyerFile.arrayBuffer());
+            const imageBase64 = imageBuffer.toString("base64");
+
+            promptParts = [
+                basePrompt,
+                "\n\nAnaliza la imagen del flyer adjunto y extrae los detalles clave (lugar, fecha, hora, bandas invitadas, etc.) para incorporarlos en la publicación. Si el tema principal ya menciona estos detalles, usa la imagen para confirmarlos o complementarlos.",
+                {
+                    inlineData: {
+                        mimeType: flyerFile.type,
+                        data: imageBase64,
+                    },
+                },
+            ];
+        } else {
+            model = genAI.getGenerativeModel({ model: "gemini-pro", safetySettings });
+            promptParts = [basePrompt];
+        }
+
+        const result = await model.generateContent({
+            contents: [{ role: "user", parts: promptParts }],
+            generationConfig: {
+                maxOutputTokens: 800,
+                temperature: 0.7,
+            },
+        });
+
+        const response = result.response;
+        const postText = response.text();
+
+        return { success: true, data: { postText } };
+
+    } catch (error: any) {
+        console.error("Error generating social post:", error);
+        // Consider more specific error messages based on error.message or error.code
+        return { success: false, error: "No se pudo generar la publicación. Inténtalo de nuevo." };
+    }
+}
+
+const bookingInquirySchema = z.object({
+  name: z.string().min(2, "El nombre es requerido.").max(100),
+  email: z.string().email("Por favor, introduce un email válido."),
+  phone: z.preprocess(
+    (val) => (val === "" ? undefined : val),
+    z.string().max(20).optional()
+  ),
+  eventType: z.string().min(3, "El tipo de evento es requerido.").max(100),
+  eventDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "La fecha del evento es inválida."),
+  message: z.string().min(10, "Por favor, proporciona más detalles en tu mensaje.").max(2000),
+});
+
+
+export async function sendBookingInquiry(inquiryData: {
+    name: string;
+    email: string;
+    phone?: string;
+    eventType: string;
+    eventDate: string;
+    message: string;
+}): Promise<{ success: boolean, error?: string }> {
+    const { name, email, phone, eventType, eventDate, message } = inquiryData;
+    
+    const validationResult = bookingInquirySchema.safeParse(inquiryData);
+    if (!validationResult.success) {
+        const firstError = validationResult.error.errors[0]?.message || "Datos de la solicitud inválidos.";
+        console.error("Booking inquiry validation failed:", validationResult.error.flatten());
+        return { success: false, error: firstError };
+    }
+    const validatedData = validationResult.data;
+    
+    const {
+        EMAIL_SERVER_HOST,
+        EMAIL_SERVER_PORT,
+        EMAIL_SERVER_USER,
+        EMAIL_SERVER_PASSWORD,
+        EMAIL_TO,
+    } = process.env;
+
+    if (!EMAIL_SERVER_HOST || !EMAIL_SERVER_PORT || !EMAIL_SERVER_USER || !EMAIL_SERVER_PASSWORD || !EMAIL_TO) {
+        console.error("Email server environment variables are not configured.");
+        return { success: false, error: "El servicio de notificaciones no está configurado correctamente." };
+    }
+
+    const transporter = nodemailer.createTransport({
+        host: EMAIL_SERVER_HOST,
+        port: parseInt(EMAIL_SERVER_PORT, 10),
+        secure: parseInt(EMAIL_SERVER_PORT, 10) === 465, // true for 465, false for other ports
+        auth: {
+            user: EMAIL_SERVER_USER,
+            pass: EMAIL_SERVER_PASSWORD,
+        },
+    });
+
+    // Correctly handle the date to avoid timezone issues.
+    // An input type="date" provides a 'YYYY-MM-DD' string. new Date('YYYY-MM-DD') can be off by one day.
+    // By appending 'T00:00:00Z' (or using new Date(year, month-1, day)), we treat it as UTC.
+    const dateParts = validatedData.eventDate.split('-').map(Number);
+    const eventDateObj = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]));
+    const formattedDate = eventDateObj.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
+
+    try {
+        await transporter.sendMail({
+            from: `"Jokers Web" <${EMAIL_SERVER_USER}>`,
+            to: EMAIL_TO,
+            replyTo: validatedData.email,
+            subject: `Nueva Solicitud de Contratación: ${validatedData.eventType} para ${validatedData.name}`,
+            text: `
+                Nueva Solicitud de Contratación:
+                - Nombre: ${validatedData.name}
+                - Email: ${validatedData.email}
+                ${validatedData.phone ? `- Teléfono: ${validatedData.phone}` : ''}
+                - Tipo de Evento: ${validatedData.eventType}
+                - Fecha: ${formattedDate}
+                - Mensaje: ${validatedData.message}
+            `,
+            html: `<h1>Nueva Solicitud de Contratación</h1><p>Has recibido una nueva solicitud a través de la página web.</p><h2>Detalles:</h2><ul><li><strong>Nombre:</strong> ${validatedData.name}</li><li><strong>Email de Contacto:</strong> ${validatedData.email}</li>${validatedData.phone ? `<li><strong>Teléfono:</strong> ${validatedData.phone}</li>` : ''}<li><strong>Tipo de Evento:</strong> ${validatedData.eventType}</li><li><strong>Fecha del Evento:</strong> ${formattedDate}</li></ul><h2>Mensaje:</h2><p style="white-space: pre-wrap;">${validatedData.message}</p>`,
+        });
+        return { success: true };
+    } catch (error) {
+        console.error("Error sending booking email:", error);
+        return { success: false, error: "No se pudo enviar la solicitud. Por favor, inténtalo de nuevo más tarde." };
+    }
 }
