@@ -1,3 +1,4 @@
+
 {
   "name": "rocklink-app",
   "version": "0.1.0",
@@ -10,7 +11,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "next lint --fix",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -42,6 +43,7 @@
     "embla-carousel-react": "latest",
     "firebase": "latest",
     "firebase-admin": "latest",
+    "file-saver": "latest",
     "jspdf": "latest",
     "jszip": "latest",
     "lucide-react": "latest",
@@ -54,11 +56,15 @@
     "zod": "latest"
   },
   "devDependencies": {
+    "@types/file-saver": "latest",
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
     "postcss": "latest",
     "tailwindcss": "latest",
     "typescript": "latest"
+  },
+  "eslintConfig": {
+    "extends": "next/core-web-vitals"
   }
 }

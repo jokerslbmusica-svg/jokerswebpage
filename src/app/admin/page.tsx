@@ -1,3 +1,5 @@
+// This is a placeholder for the admin page.
+// We will add protected content here in the next steps.
 "use client";
 
 import { useEffect } from 'react';
@@ -6,11 +8,13 @@ import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { BandGallery } from '@/components/sections/band-gallery';
+import { HashtagGenerator } from '@/components/sections/hashtag-generator';
 import { Separator } from '@/components/ui/separator';
 import { TourDatesManager } from '@/components/sections/tour-dates-manager';
 import { FanComments } from '@/components/sections/fan-comments';
 import { MusicManager } from '@/components/sections/music-manager';
 import { FanGalleryManager } from '@/components/sections/fan-gallery-manager';
+import { SocialPostGenerator } from '@/components/sections/social-post-generator';
 import { BandBio } from '@/components/sections/band-bio';
 
 export const dynamic = 'force-dynamic';
@@ -25,16 +29,12 @@ export default function AdminPage() {
     }
   }, [user, loading, router]);
 
-  if (loading) {
+  if (loading || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin" />
       </div>
     );
-  }
-
-  if (!user) {
-    return null; // or a redirect component
   }
 
   return (
@@ -50,13 +50,17 @@ export default function AdminPage() {
                 <Separator />
                 <MusicManager />
                 <Separator />
-                <BandGallery />
+                <BandGallery readOnly={false} />
                 <Separator />
                 <FanGalleryManager />
                 <Separator />
-                <BandBio />
+                <HashtagGenerator />
                 <Separator />
-                <FanComments />
+                <SocialPostGenerator />
+                <Separator />
+                <BandBio readOnly={false} />
+                <Separator />
+                <FanComments readOnly={false} />
             </div>
         </div>
     </main>
