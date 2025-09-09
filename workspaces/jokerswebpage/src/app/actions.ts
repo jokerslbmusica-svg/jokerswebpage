@@ -5,7 +5,7 @@
 import { revalidatePath } from "next/cache";
 import admin from 'firebase-admin';
 import type { App } from 'firebase-admin/app';
-import type { DocumentData, Firestore, QueryDocumentSnapshot } from 'firebase-admin/firestore';
+import type { Firestore, QueryDocumentSnapshot, DocumentData } from 'firebase-admin/firestore';
 import type { Storage } from 'firebase-admin/storage';
 
 // ====================================================================
