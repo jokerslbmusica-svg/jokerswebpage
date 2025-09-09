@@ -14,7 +14,6 @@ import { BandGallery } from '@/components/sections/band-gallery';
 import { BandBio } from '@/components/sections/band-bio';
 import { FanGallery } from '@/components/sections/fan-gallery';
 import { FanComments } from '@/components/sections/fan-comments';
-import { PressKit } from '@/components/sections/press-kit';
 
 export default function Home() {
   return (
@@ -43,7 +42,7 @@ export default function Home() {
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
           <div className="xl:col-span-2">
-            <BandGallery readOnly={true} />
+            <BandGallery />
           </div>
           <div className="xl:col-span-1">
             <BandBio />
@@ -56,20 +55,11 @@ export default function Home() {
         
         <Separator className="my-8" />
 
-        <FanComments readOnly={true} />
+        <FanComments />
         
-        <Separator className="my-8" />
-        
-        <PressKit />
-
       </div>
       <footer className="w-full bg-primary/90 backdrop-blur-sm text-primary-foreground text-center p-4">
         <p>&copy; {new Date().getFullYear()} Jokers Live Band. Todos los derechos reservados.</p>
-        <div className="mt-2">
-            <Link href="/login" className="text-xs text-primary-foreground/70 hover:text-primary-foreground hover:underline transition-colors">
-                Admin
-            </Link>
-        </div>
       </footer>
     </main>
   );

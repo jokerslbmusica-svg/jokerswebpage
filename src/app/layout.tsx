@@ -1,13 +1,6 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
-import dynamic from 'next/dynamic';
-
-const AuthProviderWithNoSSR = dynamic(
-  () => import('@/hooks/use-auth').then(mod => mod.AuthProvider),
-  { ssr: false }
-)
-
 
 export const metadata: Metadata = {
   title: 'Jokers Live Band',
@@ -28,9 +21,7 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <AuthProviderWithNoSSR>
           {children}
-        </AuthProviderWithNoSSR>
         <Toaster />
       </body>
     </html>
